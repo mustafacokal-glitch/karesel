@@ -254,11 +254,13 @@ export default function ActionButtons() {
       // Store'daki gridDimensions'ı güncelle
       useProjectStore.getState().setGridDimensions({ rows, cols });
 
-      const { pixelGrid, colorMap } = processImageToGrid(cleanData, rows, cols, difficultyLevel);
+      await new Promise(r => setTimeout(r, 10)); // UI'ın loading state'ini çizmesine izin ver
+      const { pixelGrid, colorMap } = await processImageToGrid(cleanData, rows, cols, difficultyLevel);
 
       // Kolay modlarda (1 ve 2) pikselli bloklu yapıyı korumak için iskeletleştirmeyi (thinning) kapatıyoruz.
       // Sadece uzman modunda (4) devreye alıyoruz.
       const enableThinning = difficultyLevel >= 4; 
+      await new Promise(r => setTimeout(r, 10)); // Event loop'a nefes aldır
       const { cleanGrid, cleanColors } = applySmartCleaners(pixelGrid, colorMap, 24, enableThinning);
 
       // 5. Zorluk seviyesine göre renk sayısını sınırla

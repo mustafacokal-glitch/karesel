@@ -632,6 +632,74 @@ export function smoothJaggedEdges(grid) {
 }
 
 // -----------------------------------------------------------
+// 5.7. DIŞ BEYAZ ARKA PLAN TEMİZLİĞİ (Flood Fill)
+// -----------------------------------------------------------
+
+/**
+ * Gridin dış kenarlarından başlayarak, birbirine bağlı olan Beyaz (id: 1) pikselleri bulur 
+ * ve bunları 0 (Boş / EMPTY_ID) yapar. Böylece figürün içindeki beyazlar (göz vb.) korunurken,
+ * arka plan beyazları gereksiz yere numaralandırılmaz.
+ *
+ * @param {number[][]} grid - 2D grid
+ * @returns {number[][]} Arka planı temizlenmiş grid
+ */
+export function removeOuterWhiteBackground(grid) {
+  try {
+    const rows = grid.length;
+    if (rows === 0) return grid;
+    const cols = grid[0].length;
+    if (cols === 0) return grid;
+
+    const result = grid.map(row => [...row]);
+    const visited = Array.from({ length: rows }, () => new Array(cols).fill(false));
+    const queue = [];
+
+    // Kenarlardaki hücreleri sıraya ekle (0 veya 1 olanları)
+    for (let r = 0; r < rows; r++) {
+      if (result[r][0] === 0 || result[r][0] === 1) { queue.push([r, 0]); visited[r][0] = true; }
+      if (result[r][cols - 1] === 0 || result[r][cols - 1] === 1) { queue.push([r, cols - 1]); visited[r][cols - 1] = true; }
+    }
+    for (let c = 1; c < cols - 1; c++) {
+      if (result[0][c] === 0 || result[0][c] === 1) { queue.push([0, c]); visited[0][c] = true; }
+      if (result[rows - 1][c] === 0 || result[rows - 1][c] === 1) { queue.push([rows - 1, c]); visited[rows - 1][c] = true; }
+    }
+
+    // BFS (Flood Fill) ile dışarıdan bağlı tüm boşlukları ve beyazları tara
+    let head = 0;
+    while (head < queue.length) {
+      const [r, c] = queue[head++];
+      
+      // Eğer hücre 1 (Beyaz) ise, onu 0 (Boş) yap
+      if (result[r][c] === 1) {
+        result[r][c] = 0;
+      }
+
+      // 4 yönlü komşulara bak
+      const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+      for (const [dr, dc] of dirs) {
+        const nr = r + dr;
+        const nc = c + dc;
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+          if (!visited[nr][nc]) {
+            const val = result[nr][nc];
+            // Sadece 0 (Boş) veya 1 (Beyaz) üzerinden ilerle (Diğer renklere / konturlara çarpınca dur)
+            if (val === 0 || val === 1) {
+              visited[nr][nc] = true;
+              queue.push([nr, nc]);
+            }
+          }
+        }
+      }
+    }
+
+    return result;
+  } catch (err) {
+    console.error('[gridCleaners] removeOuterWhiteBackground hatası:', err);
+    return grid;
+  }
+}
+
+// -----------------------------------------------------------
 // 6. ANA DIŞA AKTARIM (applySmartCleaners)
 // -----------------------------------------------------------
 
@@ -657,6 +725,10 @@ export function applySmartCleaners(grid, colors, outlineId, enableThinning = fal
   try {
     let cleanGrid = grid.map(row => [...row]);
     let cleanColors = { ...colors };
+
+    // 0. Dış Beyaz Arka Plan Temizliği (Flood Fill)
+    // Sadece dışarıdaki beyazları 0 (EMPTY_ID) yapar, içeridekiler korunur
+    cleanGrid = removeOuterWhiteBackground(cleanGrid);
 
     // 1. İzole piksel temizliği
     cleanGrid = cleanIsolatedPixels(cleanGrid, cleanColors);

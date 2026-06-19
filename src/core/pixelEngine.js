@@ -138,7 +138,7 @@ function mapToPalette(r, g, b, allowedPalette = PALETTE) {
  * @param {number} difficultyLevel - Zorluk seviyesi (1-4)
  * @returns {{ pixelGrid: number[][], colorMap: object }}
  */
-export function processImageToGrid(imageData, rows, cols, difficultyLevel = 2) {
+export async function processImageToGrid(imageData, rows, cols, difficultyLevel = 2) {
   const { width, height, data } = imageData;
 
   // Görselin en-boy oranını bozmadan ızgaraya oturtmak için (object-fit: contain mantığı)
@@ -158,6 +158,11 @@ export function processImageToGrid(imageData, rows, cols, difficultyLevel = 2) {
   const allowedPalette = getPaletteForDifficulty(difficultyLevel);
 
   for (let row = 0; row < rows; row++) {
+    // Tarayıcının kilitlenmesini engellemek için (event loop'a nefes aldır)
+    if (row % 2 === 0) {
+      await new Promise(r => setTimeout(r, 0));
+    }
+
     const gridRow = [];
 
     for (let col = 0; col < cols; col++) {
