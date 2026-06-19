@@ -643,7 +643,7 @@ export function smoothJaggedEdges(grid) {
  * @param {number[][]} grid - 2D grid
  * @returns {number[][]} Arka planı temizlenmiş grid
  */
-export function removeOuterWhiteBackground(grid) {
+export function removeOuterWhiteBackground(grid, targetColorId = 1) {
   try {
     const rows = grid.length;
     if (rows === 0) return grid;
@@ -654,23 +654,23 @@ export function removeOuterWhiteBackground(grid) {
     const visited = Array.from({ length: rows }, () => new Array(cols).fill(false));
     const queue = [];
 
-    // Kenarlardaki hücreleri sıraya ekle (0 veya 1 olanları)
+    // Kenarlardaki hücreleri sıraya ekle (0 veya targetColorId olanları)
     for (let r = 0; r < rows; r++) {
-      if (result[r][0] === 0 || result[r][0] === 1) { queue.push([r, 0]); visited[r][0] = true; }
-      if (result[r][cols - 1] === 0 || result[r][cols - 1] === 1) { queue.push([r, cols - 1]); visited[r][cols - 1] = true; }
+      if (result[r][0] === 0 || result[r][0] === targetColorId) { queue.push([r, 0]); visited[r][0] = true; }
+      if (result[r][cols - 1] === 0 || result[r][cols - 1] === targetColorId) { queue.push([r, cols - 1]); visited[r][cols - 1] = true; }
     }
     for (let c = 1; c < cols - 1; c++) {
-      if (result[0][c] === 0 || result[0][c] === 1) { queue.push([0, c]); visited[0][c] = true; }
-      if (result[rows - 1][c] === 0 || result[rows - 1][c] === 1) { queue.push([rows - 1, c]); visited[rows - 1][c] = true; }
+      if (result[0][c] === 0 || result[0][c] === targetColorId) { queue.push([0, c]); visited[0][c] = true; }
+      if (result[rows - 1][c] === 0 || result[rows - 1][c] === targetColorId) { queue.push([rows - 1, c]); visited[rows - 1][c] = true; }
     }
 
-    // BFS (Flood Fill) ile dışarıdan bağlı tüm boşlukları ve beyazları tara
+    // BFS (Flood Fill) ile dışarıdan bağlı tüm boşlukları ve hedeflenen rengi tara
     let head = 0;
     while (head < queue.length) {
       const [r, c] = queue[head++];
       
-      // Eğer hücre 1 (Beyaz) ise, onu 0 (Boş) yap
-      if (result[r][c] === 1) {
+      // Eğer hücre hedeflenen renk ise, onu 0 (Boş) yap
+      if (result[r][c] === targetColorId) {
         result[r][c] = 0;
       }
 
@@ -682,8 +682,8 @@ export function removeOuterWhiteBackground(grid) {
         if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
           if (!visited[nr][nc]) {
             const val = result[nr][nc];
-            // Sadece 0 (Boş) veya 1 (Beyaz) üzerinden ilerle (Diğer renklere / konturlara çarpınca dur)
-            if (val === 0 || val === 1) {
+            // Sadece 0 (Boş) veya hedeflenen renk üzerinden ilerle (Diğer renklere / konturlara çarpınca dur)
+            if (val === 0 || val === targetColorId) {
               visited[nr][nc] = true;
               queue.push([nr, nc]);
             }
