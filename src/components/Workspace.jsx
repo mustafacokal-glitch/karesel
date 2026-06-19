@@ -127,7 +127,7 @@ export default function Workspace() {
 
         // Hücre Numarası (0 ise yazma)
         if (cellId !== 0 && cellId !== undefined && cellId !== null) {
-          let textFill = '#374151'; // Öğrenci çalışma kağıdındayken her zaman koyu gri
+          let textFill = '#000000'; // Öğrenci çalışma kağıdındayken her zaman siyah
           if ((showSolution || isEditMode) && fillColor !== 'white') {
             const hex = fillColor.replace('#', '');
             const rC = parseInt(hex.substring(0, 2), 16);

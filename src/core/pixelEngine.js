@@ -79,19 +79,36 @@ function getDistance(c1, c2) {
 }
 
 /**
- * Bir (r,g,b) rengini PALETTE'deki en yakın renge eşler.
- * RGB Öklid mesafesi kullanılır.
+ * Zorluk seviyesine göre kısıtlanmış paleti döndürür.
+ * 1. ve 2. seviyelerde bilişsel yükü azaltmak için benzer renkleri çıkarır.
  */
-function mapToPalette(r, g, b) {
+export function getPaletteForDifficulty(level) {
+  if (level <= 2) {
+    // Sadece ana ve temel ara renkler (Kahverengi, Siyah, Beyaz dahil)
+    const allowedIds = [1, 4, 6, 7, 14, 19, 22, 24]; 
+    return PALETTE.filter(c => allowedIds.includes(c.id));
+  } else if (level === 3) {
+    // Orta seviye palet (Bariyer renkler eklenir ama tüm tonlar değil)
+    const allowedIds = [1, 4, 5, 6, 7, 9, 11, 14, 16, 19, 22, 23, 24];
+    return PALETTE.filter(c => allowedIds.includes(c.id));
+  }
+  return PALETTE; // Uzman seviyesi: Tüm renkler
+}
+
+/**
+ * Bir (r,g,b) rengini verilen palet içindeki en yakın renge eşler.
+ * RGB Öklid/CIELAB mesafesi kullanılır.
+ */
+function mapToPalette(r, g, b, allowedPalette = PALETTE) {
   const target = { r, g, b };
   let minDist = Infinity;
   let bestId = 1; // Varsayılan: Beyaz
 
-  for (let i = 0; i < PALETTE.length; i++) {
-    const dist = colorDistLAB(target, PALETTE[i], 1.0); // Normal CIELAB mesafesi
+  for (let i = 0; i < allowedPalette.length; i++) {
+    const dist = colorDistLAB(target, allowedPalette[i], 1.0); // Normal CIELAB mesafesi
     if (dist < minDist) {
       minDist = dist;
-      bestId = PALETTE[i].id;
+      bestId = allowedPalette[i].id;
     }
   }
 
@@ -118,9 +135,10 @@ function mapToPalette(r, g, b) {
  * @param {ImageData} imageData - Kaynak görsel verisi
  * @param {number} rows - Hedef satır sayısı
  * @param {number} cols - Hedef sütun sayısı
+ * @param {number} difficultyLevel - Zorluk seviyesi (1-4)
  * @returns {{ pixelGrid: number[][], colorMap: object }}
  */
-export function processImageToGrid(imageData, rows, cols) {
+export function processImageToGrid(imageData, rows, cols, difficultyLevel = 2) {
   const { width, height, data } = imageData;
 
   // Her grid hücresine düşen kaynak piksel blok büyüklüğü
@@ -129,6 +147,7 @@ export function processImageToGrid(imageData, rows, cols) {
 
   const pixelGrid = [];
   const usedColorIds = new Set();
+  const allowedPalette = getPaletteForDifficulty(difficultyLevel);
 
   for (let row = 0; row < rows; row++) {
     const gridRow = [];
@@ -161,8 +180,8 @@ export function processImageToGrid(imageData, rows, cols) {
           const g = data[srcIdx + 1];
           const b = data[srcIdx + 2];
 
-          // Bu pikseli palette eşle (RGB Öklid)
-          const paletteId = mapToPalette(r, g, b);
+          // Bu pikseli palette eşle (RGB Öklid/CIELAB)
+          const paletteId = mapToPalette(r, g, b, allowedPalette);
 
           // Siyah sayacı
           if (paletteId === BLACK_ID) {

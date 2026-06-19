@@ -126,10 +126,14 @@ function drawStudentPage(doc, pixelGrid, colorMap, gridDimensions, dims) {
   const legendRows = Math.ceil(legendEntries.length / legendCols);
   const legendHeight = legendRows * legendRowSpacing;
 
+  const needSeparateLegendPage = (rows >= 25 || cols >= 25);
+
   // ---- 3. Grid Çizimi ----
   const gridAreaTop = infoY + 10;
-  // Lejant yüksekliğine göre alt sınır belirlenir, böylece taşma veya çakışma önlenir
-  const gridAreaBottom = PAGE_HEIGHT - MARGIN_BOTTOM - legendHeight - 12;
+  // Lejant yüksekliğine göre alt sınır belirlenir, böylece taşma veya çakışma önlenir (Lejant yeni sayfadaysa tam boy kullan)
+  const gridAreaBottom = needSeparateLegendPage 
+    ? PAGE_HEIGHT - MARGIN_BOTTOM - 12
+    : PAGE_HEIGHT - MARGIN_BOTTOM - legendHeight - 12;
   const gridAreaHeight = gridAreaBottom - gridAreaTop;
   const gridAreaWidth = USABLE_WIDTH;
 
@@ -157,7 +161,7 @@ function drawStudentPage(doc, pixelGrid, colorMap, gridDimensions, dims) {
       if (cellValue && cellValue > 0) {
         doc.setFont('Roboto', 'bold');
         doc.setFontSize(Math.min(cellSize * 1.8, 20)); // %20 artırıldı ve kalın yapıldı
-        doc.setTextColor(100, 100, 100);
+        doc.setTextColor(0, 0, 0);
         const numStr = String(cellValue);
         // Tam ortaya hizalama
         doc.text(numStr, x + (cellSize / 2), y + (cellSize / 2), { align: 'center', baseline: 'middle' });
@@ -166,29 +170,53 @@ function drawStudentPage(doc, pixelGrid, colorMap, gridDimensions, dims) {
   }
 
   // ---- 4. Renk Tablosu (Lejant) ----
-  const rawLegendY = gridStartY + gridHeight + 6;
-  const maxLegendY = PAGE_HEIGHT - MARGIN_BOTTOM - legendHeight - 4;
-  const legendY = Math.min(rawLegendY, maxLegendY);
+  if (needSeparateLegendPage) {
+    doc.addPage();
+    let legendY = MARGIN_TOP + 10;
 
-  doc.setFont('Roboto', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(0, 0, 0);
-  doc.text(normalizeText('Renk Tablosu (Lejant):'), MARGIN_LEFT, legendY);
+    doc.setFont('Roboto', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(0, 0, 0);
+    doc.text(normalizeText('Renk Tablosu (Lejant)'), PAGE_WIDTH / 2, legendY, { align: 'center' });
 
-  doc.setFont('Roboto', 'normal');
-  doc.setFontSize(8);
+    legendY += 15;
 
-  // Lejantı sütunlar halinde yerleştir
-  const legendColWidth = USABLE_WIDTH / legendCols;
-  legendEntries.forEach((entry, i) => {
-    const colIdx = i % legendCols;
-    const rowIdx = Math.floor(i / legendCols);
-    const x = MARGIN_LEFT + colIdx * legendColWidth;
-    const y = legendY + 4 + rowIdx * legendRowSpacing;
-    if (y < PAGE_HEIGHT - MARGIN_BOTTOM) {
+    doc.setFont('Roboto', 'normal');
+    doc.setFontSize(11);
+
+    const legendColWidth = USABLE_WIDTH / legendCols;
+    legendEntries.forEach((entry, i) => {
+      const colIdx = i % legendCols;
+      const rowIdx = Math.floor(i / legendCols);
+      const x = MARGIN_LEFT + colIdx * legendColWidth;
+      const y = legendY + 4 + rowIdx * 10; // Daha rahat satır aralığı
       doc.text(entry, x, y);
-    }
-  });
+    });
+  } else {
+    const rawLegendY = gridStartY + gridHeight + 6;
+    const maxLegendY = PAGE_HEIGHT - MARGIN_BOTTOM - legendHeight - 4;
+    const legendY = Math.min(rawLegendY, maxLegendY);
+
+    doc.setFont('Roboto', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(0, 0, 0);
+    doc.text(normalizeText('Renk Tablosu (Lejant):'), MARGIN_LEFT, legendY);
+
+    doc.setFont('Roboto', 'normal');
+    doc.setFontSize(8);
+
+    // Lejantı sütunlar halinde yerleştir
+    const legendColWidth = USABLE_WIDTH / legendCols;
+    legendEntries.forEach((entry, i) => {
+      const colIdx = i % legendCols;
+      const rowIdx = Math.floor(i / legendCols);
+      const x = MARGIN_LEFT + colIdx * legendColWidth;
+      const y = legendY + 4 + rowIdx * legendRowSpacing;
+      if (y < PAGE_HEIGHT - MARGIN_BOTTOM) {
+        doc.text(entry, x, y);
+      }
+    });
+  }
 
   // ---- 5. Footer ----
   doc.setFont('Roboto', 'normal');

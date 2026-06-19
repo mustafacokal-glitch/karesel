@@ -7,6 +7,7 @@
  *  her hücre palette ID'si tutar, 0 = boş/beyaz) ve colorMap.
  * ============================================================
  */
+import { colorDistLAB, PALETTE } from './pixelEngine';
 
 // -----------------------------------------------------------
 // 1. ZHANG-SUEN İSKELETLEŞTİRME (Thinning)
@@ -276,7 +277,7 @@ export function cleanIsolatedPixels(grid, _colors) {
     const result = grid.map(row => [...row]);
 
     // Dokunulmayacak kritik renk ID'leri
-    const PROTECTED = new Set([24, 4]); // Siyah (24), Sarı (4)
+    const PROTECTED = new Set([24, 4, 1]); // Siyah (24), Sarı (4), Beyaz (1)
 
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
@@ -312,7 +313,24 @@ export function cleanIsolatedPixels(grid, _colors) {
               bestColor = color;
             }
           }
-          if (bestColor !== 0) result[r][c] = bestColor;
+          if (bestColor !== 0) {
+            // Kontrast kontrolü (deltaE)
+            const currentColorData = _colors[current] || PALETTE.find(p => p.id === current);
+            const bestColorData = _colors[bestColor] || PALETTE.find(p => p.id === bestColor);
+            
+            let shouldProtect = false;
+            if (currentColorData && bestColorData) {
+              const dist = colorDistLAB(currentColorData, bestColorData);
+              // CIELAB'da > 1500 çok yüksek bir zıtlık anlamına gelir (kareler toplamı)
+              if (dist > 1500) {
+                 shouldProtect = true;
+              }
+            }
+            
+            if (!shouldProtect) {
+              result[r][c] = bestColor;
+            }
+          }
         }
       }
     }

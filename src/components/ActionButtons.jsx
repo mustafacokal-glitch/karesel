@@ -252,11 +252,11 @@ export default function ActionButtons() {
       // Store'daki gridDimensions'ı güncelle
       useProjectStore.getState().setGridDimensions({ rows, cols });
 
-      const { pixelGrid, colorMap } = processImageToGrid(cleanData, rows, cols);
+      const { pixelGrid, colorMap } = processImageToGrid(cleanData, rows, cols, difficultyLevel);
 
-      // Kolay modlarda (1 ve 2) detayları belirginleştirmek ve dış hatları inceltmek için thinning'i aktif edelim.
-      // Zor ve uzman modlarında (3 ve 4) dış hatların bir tık daha kalın kalması daha estetik durduğu için kapatıyoruz.
-      const enableThinning = difficultyLevel <= 2; 
+      // Kolay modlarda (1 ve 2) pikselli bloklu yapıyı korumak için iskeletleştirmeyi (thinning) kapatıyoruz.
+      // Sadece uzman modunda (4) devreye alıyoruz.
+      const enableThinning = difficultyLevel >= 4; 
       const { cleanGrid, cleanColors } = applySmartCleaners(pixelGrid, colorMap, 24, enableThinning);
 
       // 5. Zorluk seviyesine göre renk sayısını sınırla
