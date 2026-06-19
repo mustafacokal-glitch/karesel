@@ -197,8 +197,19 @@ export async function processImageToGrid(imageData, rows, cols, difficultyLevel 
       for (let y = yStart; y < yEnd; y++) {
         for (let x = xStart; x < xEnd; x++) {
           const srcIdx = (y * width + x) * 4;
-          const alpha = data[srcIdx + 3];
+          let alpha = data[srcIdx + 3];
           totalPixels++;
+
+          const r = data[srcIdx];
+          const g = data[srcIdx + 1];
+          const b = data[srcIdx + 2];
+
+          // 1. FİLTRE: BEYAZ ARKA PLAN YOK SAYMA
+          // Renk beyaza çok yakınsa (RGB > 235), bunu şeffaf (boş sayfa) kabul et.
+          // Böylece etkinlik kağıdı arka planı "1" numarasına bulanmaz.
+          if (r > 235 && g > 235 && b > 235) {
+            alpha = 0;
+          }
 
           // Şeffaf pikseli atla (Alpha < 128)
           if (alpha < 128) continue;
@@ -226,6 +237,14 @@ export async function processImageToGrid(imageData, rows, cols, difficultyLevel 
           // Frekansı ağırlıklı artır
           freqMap.set(paletteId, (freqMap.get(paletteId) || 0) + weight);
         }
+      }
+
+      // 2. FİLTRE: GÜRÜLTÜ (NOISE) ENGELLEME
+      // Hücre kapasitesinin %6'sından azı doluysa, bu bir JPEG kirliliğidir. 
+      // Siyah veya kirli piksel oluşumunu engellemek için doğrudan BOŞ yap.
+      if (opaqueCount < (totalPixels * 0.06)) {
+        gridRow.push(EMPTY_ID);
+        continue;
       }
 
       // Çoğunluk şeffafsa boş hücre
