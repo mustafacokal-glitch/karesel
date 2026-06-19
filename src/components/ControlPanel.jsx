@@ -32,7 +32,7 @@ export default function ControlPanel() {
       if (!confirmChange) return;
 
       // Eski grid verilerini temizle
-      useProjectStore.setState({ pixelGrid: null, solutionGrid: null, colorMap: {} });
+      useProjectStore.getState().reset();
     }
 
     setDifficultyLevel(lvlValue);

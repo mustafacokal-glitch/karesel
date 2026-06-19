@@ -314,7 +314,7 @@ export default function Workspace() {
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleEndInteraction}
                 className="block mx-auto max-w-full h-auto select-none"
-                style={{ maxWidth: `${svgW}px`, aspectRatio: `${svgW} / ${svgH}` }}
+                style={{ maxWidth: `${svgW}px`, aspectRatio: `${svgW} / ${svgH}`, touchAction: 'none' }}
               />
             </div>
 
@@ -358,7 +358,7 @@ export default function Workspace() {
                 className={`block mx-auto max-w-full h-auto select-none ${
                   isEditMode ? 'cursor-crosshair' : ''
                 }`}
-                style={{ maxWidth: `${svgW}px`, aspectRatio: `${svgW} / ${svgH}` }}
+                style={{ maxWidth: `${svgW}px`, aspectRatio: `${svgW} / ${svgH}`, touchAction: 'none' }}
               />
             </div>
           </div>

@@ -601,7 +601,7 @@ export function smoothJaggedEdges(grid) {
     const result = grid.map(row => [...row]);
     
     // Daha çok korunması gereken kritik renkler
-    const PROTECTED = new Set([24, 1, 4, 8, 19, 20, 22]);
+    const PROTECTED = new Set([24, 1, 4, 7, 8, 14, 19, 20, 22]); // 7(Kırmızı) ve 14(Mavi) eklendi
 
     for (let r = 0; r < rows - 1; r++) {
       for (let c = 0; c < cols - 1; c++) {
