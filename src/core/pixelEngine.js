@@ -141,9 +141,17 @@ function mapToPalette(r, g, b, allowedPalette = PALETTE) {
 export function processImageToGrid(imageData, rows, cols, difficultyLevel = 2) {
   const { width, height, data } = imageData;
 
-  // Her grid hücresine düşen kaynak piksel blok büyüklüğü
-  const blockW = width / cols;
-  const blockH = height / rows;
+  // Görselin en-boy oranını bozmadan ızgaraya oturtmak için (object-fit: contain mantığı)
+  // Hücre boyutunu en kısıtlayıcı kenara göre hesaplıyoruz
+  const srcCellSize = Math.max(width / cols, height / rows);
+
+  // Görselin ızgara üzerinde kaç satır/sütun kaplayacağını buluyoruz
+  const imgCols = Math.min(cols, Math.round(width / srcCellSize));
+  const imgRows = Math.min(rows, Math.round(height / srcCellSize));
+
+  // Görseli ızgaranın tam ortasına yerleştirmek için offset (kaydırma) değerleri
+  const offsetX = Math.floor((cols - imgCols) / 2);
+  const offsetY = Math.floor((rows - imgRows) / 2);
 
   const pixelGrid = [];
   const usedColorIds = new Set();
@@ -153,11 +161,26 @@ export function processImageToGrid(imageData, rows, cols, difficultyLevel = 2) {
     const gridRow = [];
 
     for (let col = 0; col < cols; col++) {
-      // Bu hücrenin kaynak görseldeki sınırları
-      const xStart = Math.floor(col * blockW);
-      const xEnd = Math.floor((col + 1) * blockW);
-      const yStart = Math.floor(row * blockH);
-      const yEnd = Math.floor((row + 1) * blockH);
+      // Izgara koordinatından, görsel koordinatına çevirim
+      const r_img = row - offsetY;
+      const c_img = col - offsetX;
+
+      // Hücre görselin dışındaysa, padding olarak boş (0) bırak
+      if (r_img < 0 || r_img >= imgRows || c_img < 0 || c_img >= imgCols) {
+        gridRow.push(EMPTY_ID);
+        continue;
+      }
+
+      // Bu hücrenin kaynak görseldeki (gerçek resim) sınırları
+      const xStart = Math.floor(c_img * srcCellSize);
+      const xEnd = Math.floor(Math.min((c_img + 1) * srcCellSize, width));
+      const yStart = Math.floor(r_img * srcCellSize);
+      const yEnd = Math.floor(Math.min((r_img + 1) * srcCellSize, height));
+
+      if (xEnd <= xStart || yEnd <= yStart) {
+        gridRow.push(EMPTY_ID);
+        continue;
+      }
 
       // Palette ID -> frekans sayacı
       const freqMap = new Map();
