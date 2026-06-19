@@ -632,71 +632,58 @@ export function smoothJaggedEdges(grid) {
 }
 
 // -----------------------------------------------------------
-// 5.7. DIŞ BEYAZ ARKA PLAN TEMİZLİĞİ (Flood Fill)
+// 5.7. SİHİRLİ DEĞNEK (Magic Wand) - Arka Plan Temizleyici
 // -----------------------------------------------------------
 
 /**
- * Gridin dış kenarlarından başlayarak, birbirine bağlı olan Beyaz (id: 1) pikselleri bulur 
- * ve bunları 0 (Boş / EMPTY_ID) yapar. Böylece figürün içindeki beyazlar (göz vb.) korunurken,
- * arka plan beyazları gereksiz yere numaralandırılmaz.
- *
- * @param {number[][]} grid - 2D grid
- * @returns {number[][]} Arka planı temizlenmiş grid
+ * 7. SİHİRLİ DEĞNEK (Magic Wand) - Arka Plan Temizleyici
+ * En dış kenarlardan başlayarak içeri doğru ilerler ve 
+ * resmin asıl figürüne ait olmayan tüm "Beyaz (1)" arka planları 
+ * tespit edip Boş (0) yapar.
  */
-export function removeOuterWhiteBackground(grid, targetColorId = 1) {
-  try {
+export function removeGridBackground(grid) {
     const rows = grid.length;
-    if (rows === 0) return grid;
     const cols = grid[0].length;
-    if (cols === 0) return grid;
-
     const result = grid.map(row => [...row]);
-    const visited = Array.from({ length: rows }, () => new Array(cols).fill(false));
+    
     const queue = [];
-
-    // Kenarlardaki hücreleri sıraya ekle (0 veya targetColorId olanları)
+    const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
+    
+    // 1. Kenar hücreleri (padding alanlarını) bul ve kuyruğa ekle
     for (let r = 0; r < rows; r++) {
-      if (result[r][0] === 0 || result[r][0] === targetColorId) { queue.push([r, 0]); visited[r][0] = true; }
-      if (result[r][cols - 1] === 0 || result[r][cols - 1] === targetColorId) { queue.push([r, cols - 1]); visited[r][cols - 1] = true; }
-    }
-    for (let c = 1; c < cols - 1; c++) {
-      if (result[0][c] === 0 || result[0][c] === targetColorId) { queue.push([0, c]); visited[0][c] = true; }
-      if (result[rows - 1][c] === 0 || result[rows - 1][c] === targetColorId) { queue.push([rows - 1, c]); visited[rows - 1][c] = true; }
-    }
-
-    // BFS (Flood Fill) ile dışarıdan bağlı tüm boşlukları ve hedeflenen rengi tara
-    let head = 0;
-    while (head < queue.length) {
-      const [r, c] = queue[head++];
-      
-      // Eğer hücre hedeflenen renk ise, onu 0 (Boş) yap
-      if (result[r][c] === targetColorId) {
-        result[r][c] = 0;
-      }
-
-      // 4 yönlü komşulara bak
-      const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-      for (const [dr, dc] of dirs) {
-        const nr = r + dr;
-        const nc = c + dc;
-        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-          if (!visited[nr][nc]) {
-            const val = result[nr][nc];
-            // Sadece 0 (Boş) veya hedeflenen renk üzerinden ilerle (Diğer renklere / konturlara çarpınca dur)
-            if (val === 0 || val === targetColorId) {
-              visited[nr][nc] = true;
-              queue.push([nr, nc]);
+        for (let c = 0; c < cols; c++) {
+            if (r === 0 || r === rows - 1 || c === 0 || c === cols - 1) {
+                // Boşluk (0) veya Beyaz (1) ise arka planın başlangıcıdır
+                if (result[r][c] === 0 || result[r][c] === 1) {
+                    queue.push([r, c]);
+                    visited[r][c] = true;
+                    if (result[r][c] === 1) result[r][c] = 0; // Beyazı anında sil
+                }
             }
-          }
         }
-      }
     }
-
+    
+    // 2. BFS (Sihirli Değnek) ile içeri doğru yayıl
+    const dirs = [[-1,0], [1,0], [0,-1], [0,1]];
+    while (queue.length > 0) {
+        const [r, c] = queue.shift();
+        
+        for (const [dr, dc] of dirs) {
+            const nr = r + dr;
+            const nc = c + dc;
+            
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !visited[nr][nc]) {
+                // Eğer yayıldığımız komşu Beyaz (1) veya Boş (0) ise yola devam et
+                if (result[nr][nc] === 0 || result[nr][nc] === 1) {
+                    visited[nr][nc] = true;
+                    if (result[nr][nc] === 1) result[nr][nc] = 0; // Temizle
+                    queue.push([nr, nc]);
+                }
+            }
+        }
+    }
+    
     return result;
-  } catch (err) {
-    console.error('[gridCleaners] removeOuterWhiteBackground hatası:', err);
-    return grid;
-  }
 }
 
 // -----------------------------------------------------------
@@ -726,10 +713,6 @@ export function applySmartCleaners(grid, colors, outlineId, enableThinning = fal
     let cleanGrid = grid.map(row => [...row]);
     let cleanColors = { ...colors };
 
-    // 0. Dış Beyaz Arka Plan Temizliği (Flood Fill)
-    // Sadece dışarıdaki beyazları 0 (EMPTY_ID) yapar, içeridekiler korunur
-    cleanGrid = removeOuterWhiteBackground(cleanGrid);
-
     // 1. İzole piksel temizliği
     cleanGrid = cleanIsolatedPixels(cleanGrid, cleanColors);
 
@@ -755,6 +738,9 @@ export function applySmartCleaners(grid, colors, outlineId, enableThinning = fal
 
     // 7. Tekrarlanan renk isimlerini ayırt et
     cleanColors = differentiateDuplicateColorNames(cleanColors);
+
+    // 8. Sihirli Değnek ile arka plan beyazlarını kesin olarak yok et
+    cleanGrid = removeGridBackground(cleanGrid);
 
     return { cleanGrid, cleanColors };
   } catch (err) {

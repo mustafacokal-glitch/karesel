@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react';
 import useProjectStore from '../store/useProjectStore';
 import { removeBackground } from '../core/bgRemover';
 import { processImageToGrid, PALETTE, colorDistLAB } from '../core/pixelEngine';
-import { applySmartCleaners, removeOuterWhiteBackground } from '../core/gridCleaners';
+import { applySmartCleaners } from '../core/gridCleaners';
 import { generateActivityPDF } from '../core/pdfGenerator';
 import { calculateGridDimensions } from '../utils/gridDimensions';
 import { downloadGridAsPNG } from '../utils/pngExporter';
@@ -270,24 +270,9 @@ export default function ActionButtons() {
       // 6. Renkleri sırala (Sequentialize)
       const { sequentialGrid, sequentialColorMap } = sequentializeColors(reducedGrid, reducedColorMap);
 
-      // 7. SON TEMİZLİK: Gürültü filtrelerinden (reduceColors vs.) geçtikten sonra 
-      // yanlışlıkla Beyaz'a (#FFFFFF) yuvarlanmış ve kenara dokunan tüm arka plan lekelerini temizle
-      let finalGrid = sequentialGrid;
-      let whiteSeqId = null;
-      for (const [id, colorObj] of Object.entries(sequentialColorMap)) {
-        if (colorObj.hex === '#FFFFFF') {
-          whiteSeqId = Number(id);
-          break;
-        }
-      }
-
-      if (whiteSeqId !== null) {
-        finalGrid = removeOuterWhiteBackground(finalGrid, whiteSeqId);
-      }
-
-      // 8. Store'a kaydet
-      setPixelGrid(finalGrid);
-      setSolutionGrid(finalGrid); // Çözüm anahtarı = temizlenmiş + renk azaltılmış grid
+      // 7. Store'a kaydet
+      setPixelGrid(sequentialGrid);
+      setSolutionGrid(sequentialGrid); // Çözüm anahtarı = temizlenmiş + renk azaltılmış grid
       setColorMap(sequentialColorMap);
 
       // Başarı durumunda konfeti patlat!
