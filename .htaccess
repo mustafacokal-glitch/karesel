@@ -1,0 +1,14 @@
+RewriteEngine On
+RewriteBase /karesel/
+
+# Rewrite root directory and index.html to dist/index.html
+RewriteRule ^$ dist/index.html [L]
+RewriteRule ^index\.html$ dist/index.html [L]
+
+# Rewrite assets, favicon, and icons directly from the dist folder
+RewriteRule ^(assets/.*|favicon\.svg|icons\.svg)$ dist/$1 [L]
+
+# Fallback for client-side routing: rewrite everything else to dist/index.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ dist/index.html [L]
