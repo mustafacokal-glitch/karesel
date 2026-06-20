@@ -311,7 +311,10 @@ export default function ActionButtons() {
           finalGrid = removeGridBackground(finalGrid, whiteSeqId);
         }
 
-        useProjectStore.getState().setGridDimensions(aiResult.gridDimensions);
+        useProjectStore.getState().setGridDimensions({
+          rows: aiResult.gridDimensions.height || aiResult.gridDimensions.rows,
+          cols: aiResult.gridDimensions.width || aiResult.gridDimensions.cols
+        });
         setPixelGrid(finalGrid);
         setSolutionGrid(finalGrid);
         setColorMap(sequentialColorMap);

@@ -74,7 +74,8 @@ function getDifficultyStars(level) {
  * @param {object} dims - getPageDimensions() çıktısı
  */
 function drawStudentPage(doc, pixelGrid, colorMap, gridDimensions, dims, state, options) {
-  const { rows, cols } = gridDimensions;
+  const rows = gridDimensions.rows || gridDimensions.height || 16;
+  const cols = gridDimensions.cols || gridDimensions.width || 16;
   const { PAGE_WIDTH, PAGE_HEIGHT, MARGIN_LEFT, MARGIN_RIGHT, MARGIN_TOP, MARGIN_BOTTOM, USABLE_WIDTH } = dims;
 
   // ---- 1. Başlık ----
@@ -199,7 +200,8 @@ function drawStudentPage(doc, pixelGrid, colorMap, gridDimensions, dims, state, 
  * @param {object} dims - getPageDimensions() çıktısı
  */
 function drawSolutionPage(doc, solutionGrid, colorMap, gridDimensions, dims, state, options) {
-  const { rows, cols } = gridDimensions;
+  const rows = gridDimensions.rows || gridDimensions.height || 16;
+  const cols = gridDimensions.cols || gridDimensions.width || 16;
   const { PAGE_WIDTH, PAGE_HEIGHT, MARGIN_LEFT, MARGIN_RIGHT, MARGIN_TOP, MARGIN_BOTTOM, USABLE_WIDTH } = dims;
 
   // ---- 1. Başlık ----
@@ -405,7 +407,8 @@ export const generateActivityPDF = async (state, options = { paperSize: 'a4', pr
       ? solutionGrid
       : pixelGrid;
 
-    const { rows, cols } = gridDimensions;
+    const rows = gridDimensions.rows || gridDimensions.height || 16;
+    const cols = gridDimensions.cols || gridDimensions.width || 16;
 
     // ---- Sayfa 1: Öğrenci Etkinlik Kağıdı ----
     doc.setFont('Roboto', 'normal');
