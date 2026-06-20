@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import useProjectStore from '../store/useProjectStore';
-import { PALETTE } from '../core/pixelEngine';
+import useProjectStore from '../stores/useProjectStore';
+import { PALETTE } from '../engine/color/colorDistance';
 
 export default function ColorLegend() {
   const colorMap = useProjectStore((s) => s.colorMap);

@@ -5,7 +5,7 @@ import ControlPanel from './components/ControlPanel';
 import Workspace from './components/Workspace';
 import ColorLegend from './components/ColorLegend';
 import ActionButtons from './components/ActionButtons';
-import useProjectStore from './store/useProjectStore';
+import useProjectStore from './stores/useProjectStore';
 
 // Error Boundary: herhangi bir bileşen hatası tüm uygulamayı çökertmesin
 class ErrorBoundary extends Component {

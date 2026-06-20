@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import useProjectStore from '../store/useProjectStore';
+import useProjectStore from '../stores/useProjectStore';
 import { calculateGridDimensions } from '../utils/gridDimensions';
 
 const UploadZone = () => {

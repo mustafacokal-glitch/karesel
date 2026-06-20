@@ -7,8 +7,8 @@
  *  her hücre palette ID'si tutar, 0 = boş/beyaz) ve colorMap.
  * ============================================================
  */
-import { colorDistLAB, PALETTE } from './pixelEngine';
-import { PIPELINE_CONFIG } from './pipelineConfig';
+import { colorDistLAB, PALETTE } from '../color/colorDistance';
+import { PIPELINE_CONFIG } from '../../config/pipelineConfig';
 
 // Hızlı arama için PALETTE eşleme tablosu (O(1) erişim)
 const PALETTE_MAP = {};

@@ -1,13 +1,14 @@
 import { useCallback, useEffect } from 'react';
-import useProjectStore from '../store/useProjectStore';
-import { removeBackground } from '../core/bgRemover';
-import { processImageToGrid, PALETTE, colorDistLAB } from '../core/pixelEngine';
-import { applySmartCleaners, removeGridBackground } from '../core/gridCleaners';
-import { generateActivityPDF } from '../core/pdfGenerator';
+import useProjectStore from '../stores/useProjectStore';
+import { removeBackground } from '../engine/transform/bgRemover';
+import { processImageToGrid } from '../engine/transform/pixelEngine';
+import { PALETTE, colorDistLAB } from '../engine/color/colorDistance';
+import { applySmartCleaners, removeGridBackground } from '../engine/grid/gridCleaners';
+import { generateActivityPDF } from '../pdf/pdfGenerator';
 import { calculateGridDimensions } from '../utils/gridDimensions';
 import { downloadGridAsPNG } from '../utils/pngExporter';
 import { launchConfetti } from '../utils/confetti';
-import { PIPELINE_CONFIG } from '../core/pipelineConfig';
+import { PIPELINE_CONFIG } from '../config/pipelineConfig';
 
 /**
  * Zorluk seviyesine göre maksimum renk sayısı

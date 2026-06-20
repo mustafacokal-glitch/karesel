@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
-import useProjectStore from '../store/useProjectStore';
+import useProjectStore from '../stores/useProjectStore';
 
 const CELL_SIZE = 28;
 const LABEL_SIZE = 14;

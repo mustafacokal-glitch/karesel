@@ -1,4 +1,4 @@
-import useProjectStore from '../store/useProjectStore';
+import useProjectStore from '../stores/useProjectStore';
 import { calculateGridDimensions } from '../utils/gridDimensions';
 import { estimateCellSizeMM, MIN_CELL_SIZE_MM } from '../utils/printLayout';
 
