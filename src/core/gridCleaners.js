@@ -638,10 +638,10 @@ export function smoothJaggedEdges(grid) {
 /**
  * 7. SİHİRLİ DEĞNEK (Magic Wand) - Arka Plan Temizleyici
  * En dış kenarlardan başlayarak içeri doğru ilerler ve 
- * resmin asıl figürüne ait olmayan tüm "Beyaz (1)" arka planları 
+ * resmin asıl figürüne ait olmayan hedef renkli arka planları 
  * tespit edip Boş (0) yapar.
  */
-export function removeGridBackground(grid) {
+export function removeGridBackground(grid, targetColorId = 1) {
     const rows = grid.length;
     const cols = grid[0].length;
     const result = grid.map(row => [...row]);
@@ -653,11 +653,11 @@ export function removeGridBackground(grid) {
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             if (r === 0 || r === rows - 1 || c === 0 || c === cols - 1) {
-                // Boşluk (0) veya Beyaz (1) ise arka planın başlangıcıdır
-                if (result[r][c] === 0 || result[r][c] === 1) {
+                // Boşluk (0) veya Hedef Renk ise arka planın başlangıcıdır
+                if (result[r][c] === 0 || result[r][c] === targetColorId) {
                     queue.push([r, c]);
                     visited[r][c] = true;
-                    if (result[r][c] === 1) result[r][c] = 0; // Beyazı anında sil
+                    if (result[r][c] === targetColorId) result[r][c] = 0; // Hedef rengi anında sil
                 }
             }
         }
@@ -673,10 +673,10 @@ export function removeGridBackground(grid) {
             const nc = c + dc;
             
             if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !visited[nr][nc]) {
-                // Eğer yayıldığımız komşu Beyaz (1) veya Boş (0) ise yola devam et
-                if (result[nr][nc] === 0 || result[nr][nc] === 1) {
+                // Eğer yayıldığımız komşu Hedef Renk veya Boş (0) ise yola devam et
+                if (result[nr][nc] === 0 || result[nr][nc] === targetColorId) {
                     visited[nr][nc] = true;
-                    if (result[nr][nc] === 1) result[nr][nc] = 0; // Temizle
+                    if (result[nr][nc] === targetColorId) result[nr][nc] = 0; // Temizle
                     queue.push([nr, nc]);
                 }
             }
