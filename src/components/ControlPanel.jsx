@@ -1,6 +1,6 @@
 import useProjectStore from '../store/useProjectStore';
 import { calculateGridDimensions } from '../utils/gridDimensions';
-import { estimateCellSizeMM, MIN_CELL_SIZE_MM, computeTilingPlan } from '../utils/printLayout';
+import { estimateCellSizeMM, MIN_CELL_SIZE_MM } from '../utils/printLayout';
 
 const miniLevel = { value: 0, label: 'Mini', sublabel: '1. Sınıf İçin', grid: '9x9', icon: '🌱' };
 
@@ -109,7 +109,7 @@ export default function ControlPanel() {
             const { rows, cols } = imageAspectRatio
               ? calculateGridDimensions(miniLevel.value, imageAspectRatio)
               : calculateGridDimensions(miniLevel.value, null);
-            displayGrid = `${cols}x${rows}`;
+            const displayGrid = `${cols}x${rows}`;
 
             const recStyle = getRecommendationStyle(miniLevel.value);
             const opacityClass = recStyle.opacity || '';
@@ -119,13 +119,11 @@ export default function ControlPanel() {
             const cellMM = estimateCellSizeMM(rows, cols, orientation);
             let badge = null;
             if (cellMM < MIN_CELL_SIZE_MM) {
-              const plan = computeTilingPlan(rows, cols, orientation);
-              const totalTiles = plan.numTileRows * plan.numTileCols;
-              badge = { label: `${totalTiles} sayfa`, tone: 'info',
-                title: `Bu boyut otomatik olarak ${totalTiles} parçaya bölünüp ayrı sayfalarda basılacak.` };
-            } else if (cellMM < MIN_CELL_SIZE_MM + 2) {
+              badge = { label: 'Küçük Hücre', tone: 'error',
+                title: `Hücreler ${cellMM.toFixed(1)}mm olacak. Çok küçük olabilir.` };
+            } else if (cellMM < MIN_CELL_SIZE_MM + 1.5) {
               badge = { label: 'Dar', tone: 'warning',
-                title: `Hücreler yaklaşık ${cellMM.toFixed(1)}mm olacak, biraz dar ama tek sayfada basılabilir.` };
+                title: `Hücreler ${cellMM.toFixed(1)}mm olacak, biraz dar.` };
             }
 
             return (
@@ -157,7 +155,7 @@ export default function ControlPanel() {
                       <span
                         title={badge.title}
                         className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                          badge.tone === 'info' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
+                          badge.tone === 'error' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
                         }`}
                       >
                         {badge.label}
@@ -173,11 +171,10 @@ export default function ControlPanel() {
         <div className="grid grid-cols-2 gap-2">
           {levels.map((lvl) => {
             // Dinamik grid boyutu gösterimi
-            let displayGrid = lvl.grid;
             const { rows, cols } = imageAspectRatio
               ? calculateGridDimensions(lvl.value, imageAspectRatio)
               : calculateGridDimensions(lvl.value, null);
-            displayGrid = `${cols}x${rows}`;
+            const displayGrid = `${cols}x${rows}`;
 
             const recStyle = getRecommendationStyle(lvl.value);
             const opacityClass = recStyle.opacity || '';
@@ -187,13 +184,11 @@ export default function ControlPanel() {
             const cellMM = estimateCellSizeMM(rows, cols, orientation);
             let badge = null;
             if (cellMM < MIN_CELL_SIZE_MM) {
-              const plan = computeTilingPlan(rows, cols, orientation);
-              const totalTiles = plan.numTileRows * plan.numTileCols;
-              badge = { label: `${totalTiles} sayfa`, tone: 'info',
-                title: `Bu boyut otomatik olarak ${totalTiles} parçaya bölünüp ayrı sayfalarda basılacak.` };
-            } else if (cellMM < MIN_CELL_SIZE_MM + 2) {
+              badge = { label: 'Küçük Hücre', tone: 'error',
+                title: `Hücreler ${cellMM.toFixed(1)}mm olacak. Çok küçük olabilir.` };
+            } else if (cellMM < MIN_CELL_SIZE_MM + 1.5) {
               badge = { label: 'Dar', tone: 'warning',
-                title: `Hücreler yaklaşık ${cellMM.toFixed(1)}mm olacak, biraz dar ama tek sayfada basılabilir.` };
+                title: `Hücreler ${cellMM.toFixed(1)}mm olacak, biraz dar.` };
             }
 
             return (
@@ -221,7 +216,7 @@ export default function ControlPanel() {
                     <span
                       title={badge.title}
                       className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold leading-none ${
-                        badge.tone === 'info' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
+                        badge.tone === 'error' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
                       }`}
                     >
                       {badge.label}

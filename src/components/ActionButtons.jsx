@@ -336,10 +336,10 @@ export default function ActionButtons() {
   /**
    * PDF indirme
    */
-  const handleDownloadPDF = useCallback(() => {
+  const handleDownloadPDF = useCallback(async () => {
     try {
       const state = useProjectStore.getState();
-      generateActivityPDF(state);
+      await generateActivityPDF(state);
     } catch (err) {
       console.error('[ActionButtons] PDF hatasi:', err);
       setError(err.message || 'PDF olusturulamadi.');
