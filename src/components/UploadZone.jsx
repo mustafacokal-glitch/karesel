@@ -49,6 +49,13 @@ const UploadZone = () => {
 
           setGridDimensions({ rows, cols });
           setOrientation('portrait');
+
+          // Eski görsele ait önbelleği ve grid verilerini temizle
+          const store = useProjectStore.getState();
+          store.setOriginalImageData(null);
+          store.setPixelGrid(null);
+          store.setSolutionGrid(null);
+          store.setColorMap({});
         };
       };
 

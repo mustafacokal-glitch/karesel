@@ -9,6 +9,13 @@
  */
 import { colorDistLAB, PALETTE } from './pixelEngine';
 
+// Hızlı arama için PALETTE eşleme tablosu (O(1) erişim)
+const PALETTE_MAP = {};
+PALETTE.forEach(p => {
+  PALETTE_MAP[p.id] = p;
+});
+
+
 // -----------------------------------------------------------
 // 1. ZHANG-SUEN İSKELETLEŞTİRME (Thinning)
 // -----------------------------------------------------------
@@ -315,8 +322,8 @@ export function cleanIsolatedPixels(grid, _colors) {
           }
           if (bestColor !== 0) {
             // Kontrast kontrolü (deltaE)
-            const currentColorData = _colors[current] || PALETTE.find(p => p.id === current);
-            const bestColorData = _colors[bestColor] || PALETTE.find(p => p.id === bestColor);
+            const currentColorData = _colors[current] || PALETTE_MAP[current];
+            const bestColorData = _colors[bestColor] || PALETTE_MAP[bestColor];
             
             let shouldProtect = false;
             if (currentColorData && bestColorData) {
@@ -665,8 +672,9 @@ export function removeGridBackground(grid, targetColorId = 1) {
     
     // 2. BFS (Sihirli Değnek) ile içeri doğru yayıl
     const dirs = [[-1,0], [1,0], [0,-1], [0,1]];
-    while (queue.length > 0) {
-        const [r, c] = queue.shift();
+    let head = 0;
+    while (head < queue.length) {
+        const [r, c] = queue[head++];
         
         for (const [dr, dc] of dirs) {
             const nr = r + dr;

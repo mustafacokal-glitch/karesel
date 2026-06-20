@@ -31,8 +31,8 @@ export default function ControlPanel() {
       );
       if (!confirmChange) return;
 
-      // Eski grid verilerini temizle
-      useProjectStore.getState().reset();
+      // Sadece oluşturulan grid verilerini temizle, görseli koru
+      useProjectStore.getState().resetGridOnly();
     }
 
     setDifficultyLevel(lvlValue);

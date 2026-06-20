@@ -211,6 +211,19 @@ const useProjectStore = create((set) => ({
   }),
 
 
+  resetGridOnly: () => set({
+    pixelGrid: null,
+    solutionGrid: null,
+    colorMap: {},
+    showSolution: false,
+    isEditMode: false,
+    selectedColorId: 1,
+    isSymmetryMode: false,
+    past: [],
+    future: [],
+    error: null,
+  }),
+
   // --- Sıfırlama ---
   reset: () => set({
     uploadedImage: null,

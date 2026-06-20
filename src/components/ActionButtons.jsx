@@ -242,7 +242,24 @@ export default function ActionButtons() {
       
       let cleanData = imageData;
       if (!hasTransparency) {
-        cleanData = await removeBackground(imageData);
+        // Önbellekte daha önce temizlenmiş görsel var mı kontrol et
+        const cachedBgRemovedData = useProjectStore.getState().originalImageData;
+        if (cachedBgRemovedData) {
+          cleanData = cachedBgRemovedData;
+        } else {
+          try {
+            cleanData = await removeBackground(imageData);
+            // Başarılı arka plan temizleme sonucunu önbelleğe al
+            useProjectStore.getState().setOriginalImageData(cleanData);
+          } catch (bgErr) {
+            console.warn('[ActionButtons] Arka plan silme basarisiz oldu, orijinal gorselle devam ediliyor:', bgErr);
+            // Graceful fallback: orijinal görselle devam et
+            cleanData = imageData;
+          }
+        }
+      } else {
+        // Şeffaf görselse direkt önbelleğe yazılabilir
+        useProjectStore.getState().setOriginalImageData(imageData);
       }
 
       // 3. PixelEngine ile grid'e çevir
