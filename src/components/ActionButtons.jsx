@@ -164,8 +164,6 @@ export default function ActionButtons() {
   const isSymmetryMode = useProjectStore((s) => s.isSymmetryMode);
   const setIsSymmetryMode = useProjectStore((s) => s.setIsSymmetryMode);
 
-  const orientation = useProjectStore((s) => s.orientation);
-
   const uploadedImage = useProjectStore((s) => s.uploadedImage);
   const difficultyLevel = useProjectStore((s) => s.difficultyLevel);
   const gridDimensions = useProjectStore((s) => s.gridDimensions);
@@ -249,7 +247,7 @@ export default function ActionButtons() {
 
       // 3. PixelEngine ile grid'e çevir
       const imgRatio = img.width / img.height;
-      const { rows, cols } = calculateGridDimensions(difficultyLevel, imgRatio, orientation);
+      const { rows, cols } = calculateGridDimensions(difficultyLevel, imgRatio);
 
       // Store'daki gridDimensions'ı güncelle
       useProjectStore.getState().setGridDimensions({ rows, cols });

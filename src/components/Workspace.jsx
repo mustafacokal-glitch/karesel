@@ -134,7 +134,7 @@ export default function Workspace() {
             const gC = parseInt(hex.substring(2, 4), 16);
             const bC = parseInt(hex.substring(4, 6), 16);
             const luminance = (0.299 * rC + 0.587 * gC + 0.114 * bC) / 255;
-            textFill = luminance > 0.5 ? '#000000' : '#ffffff';
+            textFill = luminance > 0.45 ? '#1f2937' : '#ffffff';
           }
 
           ctx.fillStyle = textFill;
@@ -200,6 +200,8 @@ export default function Workspace() {
 
   const handleTouchStart = useCallback((e) => {
     if (!isEditMode) return;
+    // Çizim yaparken sayfa kaydırmasını engelle
+    e.preventDefault();
     saveHistoryCheckpoint();
     setIsDrawing(true);
     const coords = getGridCoordsFromEvent(e);
@@ -210,6 +212,7 @@ export default function Workspace() {
 
   const handleTouchMove = useCallback((e) => {
     if (!isDrawing || !isEditMode) return;
+    e.preventDefault();
     const coords = getGridCoordsFromEvent(e);
     if (coords) {
       paintCell(coords.row, coords.col);

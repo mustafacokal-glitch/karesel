@@ -10,16 +10,10 @@ const DIFFICULTY_TARGETS = {
  * 
  * @param {number} level - Zorluk seviyesi (1-4)
  * @param {number|null} aspectRatio - Görselin en-boy oranı (en / boy)
- * @param {string} orientation - Kağıt yönü ('portrait' veya 'landscape')
  * @returns {{ rows: number, cols: number }} Satır ve sütun boyutları
  */
-export function calculateGridDimensions(level, aspectRatio, orientation = 'portrait') {
+export function calculateGridDimensions(level, aspectRatio) {
   const targetMax = DIFFICULTY_TARGETS[level] || 30;
-  
-  // Yatay kağıt seçildiyse (Seçenek 1) A4 basılabilir alan oranına yakın bir grid üret (1:1.5)
-  if (orientation === 'landscape') {
-    return { rows: targetMax, cols: Math.round(targetMax * 1.5) };
-  }
 
   if (!aspectRatio) {
     return { rows: targetMax, cols: targetMax };

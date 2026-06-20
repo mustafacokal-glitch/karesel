@@ -21,7 +21,6 @@ export default function ControlPanel() {
   const setOrientation = useProjectStore((s) => s.setOrientation);
   const imageAspectRatio = useProjectStore((s) => s.imageAspectRatio);
   const pixelGrid = useProjectStore((s) => s.pixelGrid);
-  const reset = useProjectStore((s) => s.reset);
 
   const handleDifficultyClick = (lvlValue) => {
     if (lvlValue === difficultyLevel) return;
@@ -33,7 +32,7 @@ export default function ControlPanel() {
       if (!confirmChange) return;
 
       // Eski grid verilerini temizle
-      reset();
+      useProjectStore.getState().reset();
     }
 
     setDifficultyLevel(lvlValue);
@@ -50,8 +49,8 @@ export default function ControlPanel() {
           {levels.map((lvl) => {
             // Dinamik grid boyutu gösterimi
             let displayGrid = lvl.grid;
-            if (imageAspectRatio || orientation === 'landscape') {
-              const { rows, cols } = calculateGridDimensions(lvl.value, imageAspectRatio || 1, orientation);
+            if (imageAspectRatio) {
+              const { rows, cols } = calculateGridDimensions(lvl.value, imageAspectRatio);
               displayGrid = `${cols}x${rows}`;
             }
 
