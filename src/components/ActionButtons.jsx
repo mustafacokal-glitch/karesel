@@ -353,7 +353,7 @@ export default function ActionButtons() {
    */
   const handleDownloadPNG = useCallback(() => {
     try {
-      const canvas = document.querySelector('canvas');
+      const canvas = useProjectStore.getState().canvasRef;
       if (!canvas) {
         throw new Error('Çalışma alanında indirilecek görsel bulunamadı.');
       }

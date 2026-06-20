@@ -48,6 +48,9 @@ const useProjectStore = create((set) => ({
   // Hata durumu
   error: null,
 
+  // Canvas referansı (PNG indirme vb. işlemler için DOM node referansı taşır)
+  canvasRef: null,
+
   // --- Öğretmen Düzenleme Modu State'leri ---
   isEditMode: false,
   selectedColorId: 1,
@@ -96,6 +99,8 @@ const useProjectStore = create((set) => ({
   setProcessing: (status) => set({ isProcessing: status }),
 
   setError: (error) => set({ error }),
+
+  setCanvasRef: (ref) => set({ canvasRef: ref }),
 
   // --- Öğretmen Düzenleme Modu Aksiyonları ---
   setIsEditMode: (status) => set({ isEditMode: status }),

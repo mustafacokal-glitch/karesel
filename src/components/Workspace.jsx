@@ -16,10 +16,16 @@ export default function Workspace() {
   const showSolution = useProjectStore((s) => s.showSolution);
   const setShowSolution = useProjectStore((s) => s.setShowSolution);
   const saveHistoryCheckpoint = useProjectStore((s) => s.saveHistoryCheckpoint);
+  const setCanvasRef = useProjectStore((s) => s.setCanvasRef);
 
   const [isDrawing, setIsDrawing] = useState(false);
   const canvasRef = useRef(null);
   const gridRef = useRef(null);
+
+  const handleCanvasRef = useCallback((node) => {
+    canvasRef.current = node;
+    setCanvasRef(node);
+  }, [setCanvasRef]);
 
   const rows = gridDimensions?.rows || 0;
   const cols = gridDimensions?.cols || 0;
@@ -306,7 +312,7 @@ export default function Workspace() {
               ref={gridRef}
             >
               <canvas
-                ref={canvasRef}
+                ref={handleCanvasRef}
                 onMouseDown={handleStartInteraction}
                 onMouseMove={handleMoveInteraction}
                 onMouseUp={handleEndInteraction}
@@ -348,7 +354,7 @@ export default function Workspace() {
               ref={gridRef}
             >
               <canvas
-                ref={canvasRef}
+                ref={handleCanvasRef}
                 onMouseDown={handleStartInteraction}
                 onMouseMove={handleMoveInteraction}
                 onMouseUp={handleEndInteraction}
