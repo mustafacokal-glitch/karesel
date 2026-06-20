@@ -23,7 +23,10 @@ export default function AIQESDashboard() {
   else if (effort > 4000) timeEstimate = '30-45 dakika';
   else if (effort > 2000) timeEstimate = '20-30 dakika';
 
-  const diffLabels = { 1: 'Kolay', 2: 'Orta', 3: 'Zor', 4: 'Uzman' };
+  const diffLabels = { 
+    1: 'Kolay', 2: 'Orta', 3: 'Zor', 4: 'Uzman',
+    'easy': 'Kolay', 'balanced': 'Orta', 'advanced': 'Zor' 
+  };
   const difficultyLabel = diffLabels[difficultyLevel] || 'Orta';
   const ageLabel = gradeLevel ? `${gradeLevel}. Sınıf` : 'Belirtilmedi';
 

@@ -47,15 +47,19 @@ export class ShapePreservationEngine {
     // Copy borders directly
     outData.set(data);
 
+    // Optimize memory allocation (avoiding new arrays per pixel)
+    const maxNeighbors = (radius * 2 + 1) * (radius * 2 + 1);
+    const rVals = new Uint8Array(maxNeighbors);
+    const gVals = new Uint8Array(maxNeighbors);
+    const bVals = new Uint8Array(maxNeighbors);
+
     for (let y = radius; y < height - radius; y++) {
       for (let x = radius; x < width - radius; x++) {
         const idx = (y * width + x) * 4;
 
         if (data[idx + 3] === 0) continue; // Skip transparent
 
-        const rVals: number[] = [];
-        const gVals: number[] = [];
-        const bVals: number[] = [];
+        let count = 0;
 
         // Collect neighborhood
         for (let dy = -radius; dy <= radius; dy++) {
@@ -63,22 +67,23 @@ export class ShapePreservationEngine {
             const nIdx = ((y + dy) * width + (x + dx)) * 4;
             // Only consider opaque-ish pixels for the median
             if (data[nIdx + 3] > 128) {
-              rVals.push(data[nIdx]);
-              gVals.push(data[nIdx + 1]);
-              bVals.push(data[nIdx + 2]);
+              rVals[count] = data[nIdx];
+              gVals[count] = data[nIdx + 1];
+              bVals[count] = data[nIdx + 2];
+              count++;
             }
           }
         }
 
-        if (rVals.length > 0) {
-          rVals.sort((a, b) => a - b);
-          gVals.sort((a, b) => a - b);
-          bVals.sort((a, b) => a - b);
+        if (count > 0) {
+          const rSlice = rVals.subarray(0, count).sort();
+          const gSlice = gVals.subarray(0, count).sort();
+          const bSlice = bVals.subarray(0, count).sort();
           
-          const mid = Math.floor(rVals.length / 2);
-          outData[idx] = rVals[mid];
-          outData[idx + 1] = gVals[mid];
-          outData[idx + 2] = bVals[mid];
+          const mid = Math.floor(count / 2);
+          outData[idx] = rSlice[mid];
+          outData[idx + 1] = gSlice[mid];
+          outData[idx + 2] = bSlice[mid];
           outData[idx + 3] = data[idx + 3];
         }
       }
@@ -94,20 +99,31 @@ export class ShapePreservationEngine {
     const { width, height, data } = img;
     const outData = new Uint8ClampedArray(data);
 
-    for (let y = 1; y < height - 1; y++) {
-      for (let x = 1; x < width - 1; x++) {
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
 
         // We only look at pixels that are opaque
         if (data[idx + 3] < 128) continue;
 
-        // Check if any of the 4 direct neighbors is transparent (alpha = 0)
-        const up = ((y - 1) * width + x) * 4;
-        const down = ((y + 1) * width + x) * 4;
-        const left = (y * width + (x - 1)) * 4;
-        const right = (y * width + (x + 1)) * 4;
+        let silhouette = false;
+        
+        // If it touches the absolute image boundary, it's a silhouette by definition.
+        if (y === 0 || y === height - 1 || x === 0 || x === width - 1) {
+          silhouette = true;
+        } else {
+          // Check if any of the 4 direct neighbors is transparent (alpha = 0)
+          const up = ((y - 1) * width + x) * 4;
+          const down = ((y + 1) * width + x) * 4;
+          const left = (y * width + (x - 1)) * 4;
+          const right = (y * width + (x + 1)) * 4;
 
-        if (data[up + 3] === 0 || data[down + 3] === 0 || data[left + 3] === 0 || data[right + 3] === 0) {
+          if (data[up + 3] === 0 || data[down + 3] === 0 || data[left + 3] === 0 || data[right + 3] === 0) {
+            silhouette = true;
+          }
+        }
+
+        if (silhouette) {
           // It's a silhouette pixel. Paint it the edge color.
           outData[idx] = edgeColor[0];
           outData[idx + 1] = edgeColor[1];
@@ -127,20 +143,26 @@ export class ShapePreservationEngine {
     const { width, height, data } = img;
     const outData = new Uint8ClampedArray(data);
 
-    for (let y = 1; y < height - 1; y++) {
-      for (let x = 1; x < width - 1; x++) {
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
 
         if (data[idx + 3] === 0) continue;
 
-        const tl = this.getLuma(data, (y - 1) * width + (x - 1));
-        const tc = this.getLuma(data, (y - 1) * width + x);
-        const tr = this.getLuma(data, (y - 1) * width + (x + 1));
-        const cl = this.getLuma(data, y * width + (x - 1));
-        const cr = this.getLuma(data, y * width + (x + 1));
-        const bl = this.getLuma(data, (y + 1) * width + (x - 1));
-        const bc = this.getLuma(data, (y + 1) * width + x);
-        const br = this.getLuma(data, (y + 1) * width + (x + 1));
+        // Safe neighbor coordinates with clamping for boundaries
+        const upY = Math.max(0, y - 1);
+        const downY = Math.min(height - 1, y + 1);
+        const leftX = Math.max(0, x - 1);
+        const rightX = Math.min(width - 1, x + 1);
+
+        const tl = this.getLuma(data, upY * width + leftX);
+        const tc = this.getLuma(data, upY * width + x);
+        const tr = this.getLuma(data, upY * width + rightX);
+        const cl = this.getLuma(data, y * width + leftX);
+        const cr = this.getLuma(data, y * width + rightX);
+        const bl = this.getLuma(data, downY * width + leftX);
+        const bc = this.getLuma(data, downY * width + x);
+        const br = this.getLuma(data, downY * width + rightX);
 
         const gx = -tl - 2 * cl - bl + tr + 2 * cr + br;
         const gy = -tl - 2 * tc - tr + bl + 2 * bc + br;

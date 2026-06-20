@@ -4,7 +4,8 @@ import { AgeGroup, Difficulty } from './grid/types';
 import { ColorInfo } from './color/types';
 import { PALETTE } from './color/colorDistance';
 import { ShapePreservationEngine } from './transform/ShapePreservationEngine';
-
+import { applySmartCleaners } from './grid/gridCleaners';
+import { PIPELINE_CONFIG } from '../config/pipelineConfig';
 export class EducationalAIPipeline {
   /**
    * Complete pipeline: takes the original uploaded image, finds the optimal configuration,
@@ -44,9 +45,17 @@ export class EducationalAIPipeline {
       numericDifficulty
     );
 
+    const enableThinning = numericDifficulty >= 4;
+    const { cleanGrid, cleanColors } = applySmartCleaners(
+      pixelGridResult.pixelGrid, 
+      pixelGridResult.colorMap, 
+      PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE.ID, 
+      enableThinning
+    );
+
     return {
-      pixelGrid: pixelGridResult.pixelGrid,
-      colorMap: pixelGridResult.colorMap,
+      pixelGrid: cleanGrid,
+      colorMap: cleanColors,
       aiqesReport: bestState.report,
       gridDimensions: { width: bestState.metrics.gridWidth, height: bestState.metrics.gridHeight },
       optimizationState: bestState
