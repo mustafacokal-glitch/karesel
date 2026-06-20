@@ -21,21 +21,24 @@ export default function ControlPanel() {
   const setOrientation = useProjectStore((s) => s.setOrientation);
   const imageAspectRatio = useProjectStore((s) => s.imageAspectRatio);
   const pixelGrid = useProjectStore((s) => s.pixelGrid);
+  const uploadedImage = useProjectStore((s) => s.uploadedImage);
 
   const handleDifficultyClick = (lvlValue) => {
     if (lvlValue === difficultyLevel) return;
 
-    if (pixelGrid) {
-      const confirmChange = window.confirm(
-        'Zorluk seviyesini değiştirdiğinizde mevcut karesel resim sıfırlanacaktır ve resmi yeniden oluşturmanız gerekecektir. Devam etmek istiyor musunuz?'
-      );
-      if (!confirmChange) return;
+    const hadGrid = !!pixelGrid;
 
+    if (hadGrid) {
       // Sadece oluşturulan grid verilerini temizle, görseli koru
       useProjectStore.getState().resetGridOnly();
     }
 
     setDifficultyLevel(lvlValue);
+
+    // Eğer daha önce grid oluşturulduysa otomatik olarak anında yeniden üret
+    if (hadGrid && uploadedImage) {
+      useProjectStore.getState().triggerRegenerate();
+    }
   };
 
   return (

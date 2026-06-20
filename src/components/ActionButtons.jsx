@@ -45,8 +45,8 @@ function reduceColors(grid, colorMap, maxColors) {
     return { reducedGrid: grid, reducedColorMap: colorMap };
   }
 
-  // Dokunulmaz renkler: Siyah(24), Kahverengi(22), Koyu Kırmızı(8), Sarı(4)
-  const PROTECTED_IDS = new Set([24, 22, 8, 4]);
+  // Dokunulmaz detay renkleri: Siyah(24), Kahverengi(22), Koyu Kırmızı(8), Sarı(4), Koyu Sarı(5), Turuncu(6)
+  const PROTECTED_IDS = new Set([24, 22, 8, 6, 5, 4]);
 
   // Frekansa göre artan sırala (en az kullanılan önce)
   // Korunan renklerin frekansını suni olarak devasa yaparak silinmelerini engelle
@@ -180,6 +180,7 @@ export default function ActionButtons() {
   const redo = useProjectStore((s) => s.redo);
   const past = useProjectStore((s) => s.past);
   const future = useProjectStore((s) => s.future);
+  const regenerateTrigger = useProjectStore((s) => s.regenerateTrigger);
 
   // Listen to Undo/Redo keyboard shortcuts in edit mode
   useEffect(() => {
@@ -202,6 +203,8 @@ export default function ActionButtons() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isEditMode, undo, redo]);
+
+
 
   /**
    * Ana işlem hattı: Görsel yükle → Arka plan sil → Grid'e çevir → Temizle → Renk azalt → Kaydet
@@ -282,8 +285,13 @@ export default function ActionButtons() {
       const maxColors = DIFFICULTY_MAX_COLORS[difficultyLevel] || 10;
       const { reducedGrid, reducedColorMap } = reduceColors(cleanGrid, cleanColors, maxColors);
 
+      // Renk birleştirmelerinden sonra oluşan gürültüleri gidermek için ikinci bir hafif temizlik pası çalıştır
+      const postCleanResult = applySmartCleaners(reducedGrid, reducedColorMap, 24, false);
+      const finalCleanGrid = postCleanResult.cleanGrid;
+      const finalCleanColors = postCleanResult.cleanColors;
+
       // 6. Renkleri sırala (Sequentialize)
-      const { sequentialGrid, sequentialColorMap } = sequentializeColors(reducedGrid, reducedColorMap);
+      const { sequentialGrid, sequentialColorMap } = sequentializeColors(finalCleanGrid, finalCleanColors);
 
       // 7. SON TEMİZLİK: Gürültü filtrelerinden (reduceColors vs.) geçtikten sonra 
       // yanlışlıkla Beyaz'a (#FFFFFF) yuvarlanmış ve kenara dokunan tüm arka plan lekelerini temizle
@@ -315,6 +323,13 @@ export default function ActionButtons() {
       setProcessing(false);
     }
   }, [uploadedImage, difficultyLevel, setProcessing, setPixelGrid, setSolutionGrid, setColorMap, setError]);
+
+  // Otomatik olarak yeniden üretimi tetikle (Zorluk seviyesi değiştiğinde)
+  useEffect(() => {
+    if (regenerateTrigger > 0 && uploadedImage) {
+      handleGenerateActivity();
+    }
+  }, [regenerateTrigger, uploadedImage, handleGenerateActivity]);
 
 
   /**

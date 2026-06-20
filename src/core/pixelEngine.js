@@ -160,17 +160,15 @@ export async function processImageToGrid(imageData, rows, cols, difficultyLevel 
     for (let col = 0; col < cols; col++) {
       // Bu hücrenin kaynak görseldeki sınırları
       const xStart = Math.floor(col * blockW);
-      const xEnd = Math.floor((col + 1) * blockW);
+      const xEnd = Math.min(width, Math.floor((col + 1) * blockW));
       const yStart = Math.floor(row * blockH);
-      const yEnd = Math.floor((row + 1) * blockH);
+      const yEnd = Math.min(height, Math.floor((row + 1) * blockH));
 
-      // Palette ID -> frekans sayacı
-      const freqMap = new Map();
+      let sumR = 0, sumG = 0, sumB = 0;
+      const blockPixels = [];
       let totalPixels = 0;
-      let opaqueCount = 0;
-      let blackCount = 0;
 
-      // Blok içindeki tüm pikselleri tara
+      // 1. Geçiş: Piksel toplama ve ortalama renk hesaplama
       for (let y = yStart; y < yEnd; y++) {
         for (let x = xStart; x < xEnd; x++) {
           const srcIdx = (y * width + x) * 4;
@@ -181,57 +179,71 @@ export async function processImageToGrid(imageData, rows, cols, difficultyLevel 
           const g = data[srcIdx + 1];
           const b = data[srcIdx + 2];
 
-          // 1. FİLTRE: Açık gri ve kirli beyaz JPEG lekelerini kesin olarak sil
-          if (r > 215 && g > 215 && b > 215 && Math.abs(r-g) < 20 && Math.abs(g-b) < 20) {
-              alpha = 0;
+          // 1. FİLTRE: Açık gri ve kirli beyaz JPEG lekelerini sil
+          if (r > 215 && g > 215 && b > 215 && Math.abs(r - g) < 20 && Math.abs(g - b) < 20) {
+            alpha = 0;
           }
 
-          // Şeffaf pikseli atla (Alpha < 128)
           if (alpha < 128) continue;
 
-          opaqueCount++;
-
-          // Bu pikseli palette eşle (RGB Öklid/CIELAB)
-          const paletteId = mapToPalette(r, g, b, allowedPalette);
-
-          // Siyah sayacı
-          if (paletteId === BLACK_ID) {
-            blackCount++;
-          }
-
-          // İnce detayları (göz bebekleri, tohumlar, çizgiler) korumak için belirli renklere ekstra ağırlık ver
-          let weight = 1.0;
-          // Siyah(24), Kahverengi(22), Koyu Kırmızı(8), Sarı(4)
-          if (paletteId === 24 || paletteId === 22 || paletteId === 8 || paletteId === 4) {
-             weight = 2.5; // Detay renkleri 2.5 kat daha değerli sayılır
-          }
-
-          // Frekansı ağırlıklı artır
-          freqMap.set(paletteId, (freqMap.get(paletteId) || 0) + weight);
+          blockPixels.push({ r, g, b });
+          sumR += r;
+          sumG += g;
+          sumB += b;
         }
       }
 
-      // 2. FİLTRE: Hücrenin %10'undan azı doluysa bu bir lekedir, boş say!
-      if (opaqueCount < (totalPixels * 0.10)) {
+      // 2. FİLTRE: Hücrenin %10'undan azı doluysa veya hiç piksel yoksa boş say
+      if (blockPixels.length < (totalPixels * 0.10) || blockPixels.length === 0) {
         gridRow.push(EMPTY_ID);
         continue;
       }
 
-      // Çoğunluk şeffafsa boş hücre
-      if (opaqueCount === 0) {
-        gridRow.push(EMPTY_ID);
-        continue;
+      const avgR = sumR / blockPixels.length;
+      const avgG = sumG / blockPixels.length;
+      const avgB = sumB / blockPixels.length;
+      const avgColor = { r: avgR, g: avgG, b: avgB };
+
+      // 2. Geçiş: Palette eşleme ve kontrast ağırlıklı oylama
+      const freqMap = new Map();
+      let blackCount = 0;
+
+      for (const p of blockPixels) {
+        const paletteId = mapToPalette(p.r, p.g, p.b, allowedPalette);
+
+        if (paletteId === BLACK_ID) {
+          blackCount++;
+        }
+
+        let weight = 1.0;
+
+        // Kontrast Duyarlılık (Contrast Boost): Blok ortalamasından algısal olarak uzak piksellere ağırlık ver
+        const distToAvg = colorDistLAB(p, avgColor);
+        if (distToAvg > 800) {
+          weight *= 4.0; // Detay piksellere (örn. sarı çekirdek, beyaz parlama) 4 kat ağırlık
+        }
+
+        // İnce detay renklerini korumak için korumalı renklere ekstra ağırlık ver
+        // Siyah(24), Kahverengi(22), Koyu Kırmızı(8), Sarı(4)
+        if (paletteId === 24 || paletteId === 22 || paletteId === 8 || paletteId === 4) {
+          weight *= 2.5;
+        }
+
+        freqMap.set(paletteId, (freqMap.get(paletteId) || 0) + weight);
       }
 
-
-      // En çok tekrar eden (mode) rengi bul
-      let maxFreq = 0;
+      // Kontur Kuralı: Eğer blok içindeki siyah oranı %15'ten fazlaysa detayı korumak için direkt Siyah yap
       let modeId = EMPTY_ID;
-
-      for (const [paletteId, freq] of freqMap) {
-        if (freq > maxFreq) {
-          maxFreq = freq;
-          modeId = paletteId;
+      if (blackCount > blockPixels.length * 0.15) {
+        modeId = BLACK_ID;
+      } else {
+        // En çok tekrar eden (mode) rengi bul
+        let maxFreq = 0;
+        for (const [paletteId, freq] of freqMap) {
+          if (freq > maxFreq) {
+            maxFreq = freq;
+            modeId = paletteId;
+          }
         }
       }
 

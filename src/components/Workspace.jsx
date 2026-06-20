@@ -86,14 +86,14 @@ export default function Workspace() {
 
     // Sütun Etiketleri (Üst)
     for (let c = 0; c < cols; c++) {
-      const x = c * CELL_SIZE + LABEL_SIZE + CELL_SIZE / 2;
-      ctx.fillText(String(c + 1), x, LABEL_SIZE / 2);
+      const labelX = c * CELL_SIZE + LABEL_SIZE + CELL_SIZE / 2;
+      ctx.fillText(String(c + 1), labelX, LABEL_SIZE / 2);
     }
 
     // Satır Etiketleri (Sol)
     for (let r = 0; r < rows; r++) {
-      const y = r * CELL_SIZE + LABEL_SIZE + CELL_SIZE / 2;
-      ctx.fillText(String(r + 1), LABEL_SIZE / 2, y);
+      const labelY = r * CELL_SIZE + LABEL_SIZE + CELL_SIZE / 2;
+      ctx.fillText(String(r + 1), LABEL_SIZE / 2, labelY);
     }
 
     // 2. Hücreleri Çiz
@@ -113,17 +113,17 @@ export default function Workspace() {
           }
         }
 
-        const x = c * CELL_SIZE + LABEL_SIZE;
-        const y = r * CELL_SIZE + LABEL_SIZE;
+        const cellX = c * CELL_SIZE + LABEL_SIZE;
+        const cellY = r * CELL_SIZE + LABEL_SIZE;
 
         // Hücre Arka Planı
         ctx.fillStyle = fillColor;
-        ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+        ctx.fillRect(cellX, cellY, CELL_SIZE, CELL_SIZE);
 
         // Hücre Sınırları
         ctx.strokeStyle = isEditMode ? '#6366f1' : '#d1d5db';
         ctx.lineWidth = 0.5;
-        ctx.strokeRect(x, y, CELL_SIZE, CELL_SIZE);
+        ctx.strokeRect(cellX, cellY, CELL_SIZE, CELL_SIZE);
 
         // Hücre Numarası (0 ise yazma)
         if (cellId !== 0 && cellId !== undefined && cellId !== null) {
@@ -139,7 +139,7 @@ export default function Workspace() {
 
           ctx.fillStyle = textFill;
           ctx.font = `bold ${CELL_SIZE > 20 ? 12 : 8}px sans-serif`;
-          ctx.fillText(String(cellId), x + CELL_SIZE / 2, y + CELL_SIZE / 2);
+          ctx.fillText(String(cellId), cellX + CELL_SIZE / 2, cellY + CELL_SIZE / 2);
         }
       }
     }
@@ -161,14 +161,14 @@ export default function Workspace() {
       clientY = e.clientY;
     }
 
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
+    const clickX = clientX - rect.left;
+    const clickY = clientY - rect.top;
 
     const scaleX = svgW / rect.width;
     const scaleY = svgH / rect.height;
 
-    const canvasX = x * scaleX;
-    const canvasY = y * scaleY;
+    const canvasX = clickX * scaleX;
+    const canvasY = clickY * scaleY;
 
     const col = Math.floor((canvasX - LABEL_SIZE) / CELL_SIZE);
     const row = Math.floor((canvasY - LABEL_SIZE) / CELL_SIZE);

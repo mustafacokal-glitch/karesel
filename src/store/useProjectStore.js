@@ -50,6 +50,7 @@ const useProjectStore = create((set) => ({
   // --- Geçmiş Takibi State'leri ---
   past: [],
   future: [],
+  regenerateTrigger: 0,
 
   // --- Aksiyonlar ---
 
@@ -92,6 +93,7 @@ const useProjectStore = create((set) => ({
   setSelectedColorId: (id) => set({ selectedColorId: id }),
 
   setIsSymmetryMode: (status) => set({ isSymmetryMode: status }),
+  triggerRegenerate: () => set((state) => ({ regenerateTrigger: state.regenerateTrigger + 1 })),
 
   updateGridCell: (rowIndex, colIndex, colorId) => set((state) => {
     if (!state.pixelGrid || !state.solutionGrid) return {};
