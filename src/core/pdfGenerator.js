@@ -308,13 +308,11 @@ export const generateActivityPDF = async (state) => {
     doc.setFont('Roboto', 'normal');
     drawSolutionPage(doc, solutionData, colorMap || {}, gridDimensions, dims);
 
-    // ---- PDF'i indir ----
-    doc.save('Karesel-Kodlama-Etkinligi.pdf');
-
-    return { success: true, message: 'PDF başarıyla oluşturuldu.' };
+    // ---- PDF Blob Döndür ----
+    return doc.output('blob');
   } catch (error) {
     console.error('PDF oluşturma hatası:', error);
-    return { success: false, message: error.message || 'PDF oluşturulamadı.' };
+    throw error;
   }
 };
 

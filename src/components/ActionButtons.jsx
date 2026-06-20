@@ -341,7 +341,16 @@ export default function ActionButtons() {
   const handleDownloadPDF = useCallback(async () => {
     try {
       const state = useProjectStore.getState();
-      await generateActivityPDF(state);
+      const pdfBlob = await generateActivityPDF(state);
+      
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'Karesel-Kodlama-Etkinligi.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (err) {
       console.error('[ActionButtons] PDF hatasi:', err);
       setError(err.message || 'PDF olusturulamadi.');
