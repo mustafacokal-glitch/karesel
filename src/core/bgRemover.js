@@ -32,10 +32,37 @@ export async function removeBackground(imageData) {
   try {
     const segmenter = await getSegmentator();
 
+    // 1. Gerekirse görseli küçült (Maksimum boyut 1024px)
+    const MAX_SIZE = 1024;
+    let processData = imageData;
+    
+    if (imageData.width > MAX_SIZE || imageData.height > MAX_SIZE) {
+      const scale = MAX_SIZE / Math.max(imageData.width, imageData.height);
+      const newWidth = Math.round(imageData.width * scale);
+      const newHeight = Math.round(imageData.height * scale);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = imageData.width;
+      canvas.height = imageData.height;
+      const ctx = canvas.getContext('2d');
+      ctx.putImageData(imageData, 0, 0);
+
+      const targetCanvas = document.createElement('canvas');
+      targetCanvas.width = newWidth;
+      targetCanvas.height = newHeight;
+      const targetCtx = targetCanvas.getContext('2d');
+      // Daha pürüzsüz küçültme için
+      targetCtx.imageSmoothingEnabled = true;
+      targetCtx.imageSmoothingQuality = 'high';
+      targetCtx.drawImage(canvas, 0, 0, newWidth, newHeight);
+      
+      processData = targetCtx.getImageData(0, 0, newWidth, newHeight);
+    }
+
     const rawImage = new RawImage(
-      imageData.data,
-      imageData.width,
-      imageData.height,
+      processData.data,
+      processData.width,
+      processData.height,
       4
     );
 
@@ -54,12 +81,12 @@ export async function removeBackground(imageData) {
       throw new Error('Maske görseli boş.');
     }
 
-    if (maskImage.width !== imageData.width || maskImage.height !== imageData.height) {
-      maskImage = await maskImage.resize(imageData.width, imageData.height);
+    if (maskImage.width !== processData.width || maskImage.height !== processData.height) {
+      maskImage = await maskImage.resize(processData.width, processData.height);
     }
 
-    const output = new ImageData(imageData.width, imageData.height);
-    const origData = imageData.data;
+    const output = new ImageData(processData.width, processData.height);
+    const origData = processData.data;
     const maskData = maskImage.data;
     const maskChannels = maskImage.channels;
 
