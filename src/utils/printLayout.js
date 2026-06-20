@@ -1,11 +1,16 @@
 export const MIN_CELL_SIZE_MM = 5;
 
-export function getPageDimensions(orientation) {
+export function getPageDimensions(orientation, paperSize = 'a4') {
+  // A4: 210 x 297 mm
+  // Letter: 215.9 x 279.4 mm
+  const w = paperSize === 'letter' ? 215.9 : 210;
+  const h = paperSize === 'letter' ? 279.4 : 297;
+
   // Sayfa kenarlıklarını tamamen minimuma (5mm) indirdik
   if (orientation === 'landscape') {
     return {
-      PAGE_WIDTH: 297,
-      PAGE_HEIGHT: 210,
+      PAGE_WIDTH: h,
+      PAGE_HEIGHT: w,
       MARGIN_LEFT: 5,
       MARGIN_RIGHT: 5,
       MARGIN_TOP: 5,
@@ -16,8 +21,8 @@ export function getPageDimensions(orientation) {
   }
   // portrait (varsayılan)
   return {
-    PAGE_WIDTH: 210,
-    PAGE_HEIGHT: 297,
+    PAGE_WIDTH: w,
+    PAGE_HEIGHT: h,
     MARGIN_LEFT: 5,
     MARGIN_RIGHT: 5,
     MARGIN_TOP: 5,

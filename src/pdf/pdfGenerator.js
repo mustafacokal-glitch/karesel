@@ -40,13 +40,32 @@ function hexToRgb(hex) {
  */
 function getContrastColor(hex) {
   const { r, g, b } = hexToRgb(hex);
-  // Relative luminance (W3C standardı yaklaşımı)
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return luminance > 0.5 ? '#000000' : '#ffffff';
 }
 
+/**
+ * HEX rengi griskala karşılığına dönüştürür (B&W yazdırma modu için).
+ */
+function hexToGrayscaleHex(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+  const gHex = gray.toString(16).padStart(2, '0');
+  return `#${gHex}${gHex}${gHex}`;
+}
 
+function estimateActivityTime(rows, cols, colorCount) {
+  const effort = (rows * cols) * colorCount;
+  if (effort > 6000) return '45-60+ dk';
+  if (effort > 4000) return '30-45 dk';
+  if (effort > 2000) return '20-30 dk';
+  return '10-15 dk';
+}
 
+function getDifficultyStars(level) {
+  const diffMap = { 1: 'Zorluk: Kolay', 2: 'Zorluk: Orta', 3: 'Zorluk: Zor', 4: 'Zorluk: Uzman' };
+  return diffMap[level] || 'Zorluk: Orta';
+}
 // Sayfa 1 — Öğrenci Etkinlik Kağıdı
 // ---------------------------------------------------------------------------
 
@@ -54,7 +73,7 @@ function getContrastColor(hex) {
  * Öğrenci sayfasının başlık, öğrenci bilgi satırı, grid ve footer bölümlerini çizer.
  * @param {object} dims - getPageDimensions() çıktısı
  */
-function drawStudentPage(doc, pixelGrid, colorMap, gridDimensions, dims) {
+function drawStudentPage(doc, pixelGrid, colorMap, gridDimensions, dims, state, options) {
   const { rows, cols } = gridDimensions;
   const { PAGE_WIDTH, PAGE_HEIGHT, MARGIN_LEFT, MARGIN_RIGHT, MARGIN_TOP, MARGIN_BOTTOM, USABLE_WIDTH } = dims;
 
@@ -64,10 +83,17 @@ function drawStudentPage(doc, pixelGrid, colorMap, gridDimensions, dims) {
   const title = normalizeText('Karesel Kodlama Etkinliği');
   doc.text(title, PAGE_WIDTH / 2, MARGIN_TOP + 8, { align: 'center' });
 
+  // Alt Başlık Metrikleri (Zorluk ve Süre)
+  doc.setFont('Roboto', 'normal');
+  doc.setFontSize(10);
+  const diffText = normalizeText(getDifficultyStars(state.difficultyLevel || 2));
+  const timeText = normalizeText(`Tahmini Süre: ${estimateActivityTime(rows, cols, Object.keys(colorMap).length)}`);
+  doc.text(`${diffText}   |   ${timeText}`, PAGE_WIDTH / 2, MARGIN_TOP + 14, { align: 'center' });
+
   // ---- 2. Öğrenci Bilgi Satırı ----
   doc.setFont('Roboto', 'normal');
   doc.setFontSize(10);
-  const infoY = MARGIN_TOP + 18;
+  const infoY = MARGIN_TOP + 22;
 
   // Sol tarafta: Adım Soyadım
   const nameText = normalizeText('Adı Soyadı: ...................................................');
@@ -172,7 +198,7 @@ function drawStudentPage(doc, pixelGrid, colorMap, gridDimensions, dims) {
  * HEX renkleriyle doldurulur, üzerine zıt renkte numara yazılır.
  * @param {object} dims - getPageDimensions() çıktısı
  */
-function drawSolutionPage(doc, solutionGrid, colorMap, gridDimensions, dims) {
+function drawSolutionPage(doc, solutionGrid, colorMap, gridDimensions, dims, state, options) {
   const { rows, cols } = gridDimensions;
   const { PAGE_WIDTH, PAGE_HEIGHT, MARGIN_LEFT, MARGIN_RIGHT, MARGIN_TOP, MARGIN_BOTTOM, USABLE_WIDTH } = dims;
 
@@ -182,6 +208,11 @@ function drawSolutionPage(doc, solutionGrid, colorMap, gridDimensions, dims) {
   const title = normalizeText('ÇÖZÜM ANAHTARI (ÖĞRETMEN REHBERİ)');
   doc.setTextColor(0, 0, 0);
   doc.text(title, PAGE_WIDTH / 2, MARGIN_TOP + 8, { align: 'center' });
+
+  doc.setFont('Roboto', 'normal');
+  doc.setFontSize(10);
+  const printModeText = options.printMode === 'bw' ? 'Siyah-Beyaz Baskı Modu' : 'Renkli Baskı Modu';
+  doc.text(printModeText, PAGE_WIDTH / 2, MARGIN_TOP + 14, { align: 'center' });
 
   // ---- 2. Grid Çizimi (dolu renklerle) ----
   const gridAreaTop = MARGIN_TOP + 16;
@@ -212,7 +243,10 @@ function drawSolutionPage(doc, solutionGrid, colorMap, gridDimensions, dims) {
       if (cellValue && cellValue > 0) {
         const colorEntry = colorMap[cellValue];
         if (colorEntry) {
-          const hex = colorEntry.hex || colorEntry.color || '#000000';
+          let hex = colorEntry.hex || colorEntry.color || '#000000';
+          if (options.printMode === 'bw') {
+            hex = hexToGrayscaleHex(hex);
+          }
           const { r, g, b } = hexToRgb(hex);
           doc.setFillColor(r, g, b);
           doc.rect(x, y, cellSize, cellSize, 'F');  // Doldur
@@ -228,7 +262,10 @@ function drawSolutionPage(doc, solutionGrid, colorMap, gridDimensions, dims) {
         const colorEntry = colorMap[cellValue];
         let textColor = '#000000';
         if (colorEntry) {
-          const hex = colorEntry.hex || colorEntry.color || '#000000';
+          let hex = colorEntry.hex || colorEntry.color || '#000000';
+          if (options.printMode === 'bw') {
+            hex = hexToGrayscaleHex(hex);
+          }
           textColor = getContrastColor(hex);
         }
         const { r, g, b } = hexToRgb(textColor);
@@ -243,29 +280,100 @@ function drawSolutionPage(doc, solutionGrid, colorMap, gridDimensions, dims) {
   }
 }
 
+// Sayfa 3 — AIQES Eğitsel Değerlendirme Raporu
+// ---------------------------------------------------------------------------
+
+function drawAIQESPage(doc, aiqesReport, dims, state, options) {
+  const { PAGE_WIDTH, PAGE_HEIGHT, MARGIN_LEFT, MARGIN_RIGHT, MARGIN_TOP } = dims;
+
+  doc.setFont('Roboto', 'bold');
+  doc.setFontSize(22);
+  doc.setTextColor(0, 0, 0);
+  doc.text(normalizeText('Eğitsel Değerlendirme Raporu (AIQES)'), PAGE_WIDTH / 2, MARGIN_TOP + 15, { align: 'center' });
+
+  doc.setFont('Roboto', 'normal');
+  doc.setFontSize(12);
+  doc.setTextColor(100, 100, 100);
+  doc.text(normalizeText('Karesel Yapay Zeka (AI) Pedagojik Analiz Sonuçları'), PAGE_WIDTH / 2, MARGIN_TOP + 23, { align: 'center' });
+
+  // Puan Kutusu
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.5);
+  doc.rect(PAGE_WIDTH / 2 - 40, MARGIN_TOP + 35, 80, 25);
+  doc.setFont('Roboto', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(0, 0, 0);
+  doc.text(normalizeText('Eğitsel Uygunluk Puanı'), PAGE_WIDTH / 2, MARGIN_TOP + 45, { align: 'center' });
+  doc.setFontSize(20);
+  doc.text(`${aiqesReport.aiqesScore} / 100`, PAGE_WIDTH / 2, MARGIN_TOP + 55, { align: 'center' });
+
+  let currentY = MARGIN_TOP + 75;
+
+  const drawSection = (title, items, icon) => {
+    if (!items || items.length === 0) return;
+    
+    doc.setFont('Roboto', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text(normalizeText(`${icon} ${title}`), MARGIN_LEFT + 10, currentY);
+    currentY += 8;
+
+    doc.setFont('Roboto', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(50, 50, 50);
+
+    items.forEach(item => {
+      // Split text to fit width
+      const lines = doc.splitTextToSize(`- ${normalizeText(item)}`, PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT - 20);
+      doc.text(lines, MARGIN_LEFT + 15, currentY);
+      currentY += (lines.length * 5) + 3;
+    });
+    currentY += 10;
+  };
+
+  const strengths = [];
+  const suggestions = [];
+
+  const metrics = [
+    aiqesReport.recognizability, aiqesReport.shapePreservation, 
+    aiqesReport.educationalComplexity, aiqesReport.colorSimplicity, 
+    aiqesReport.worksheetEffort, aiqesReport.motivation
+  ];
+
+  metrics.forEach(m => {
+    if (m.score >= 85) strengths.push(m.explanation);
+    if (m.score < 100 && m.recommendations) {
+      m.recommendations.forEach(r => suggestions.push(r));
+    }
+  });
+
+  drawSection('Etkinliğin Güçlü Yönleri', strengths, '+');
+  drawSection('Öğretmene Tavsiyeler', suggestions, '>');
+}
+
 
 // ---------------------------------------------------------------------------
 // Ana Dışa Aktarım Fonksiyonu
 // ---------------------------------------------------------------------------
 
 /**
- * Store state'ini alarak 2 sayfalık bir etkinlik PDF'i üretir ve indirir.
+ * Store state'ini alarak PDF'i üretir ve indirir.
  *
  * @param {Object} state - useProjectStore'un anlık state'i
- * @param {number[][]}  state.pixelGrid       - Renk ID'leriyle dolu grid
- * @param {number[][]}  [state.solutionGrid]  - Çözüm grid'i (yoksa pixelGrid kullanılır)
- * @param {Object}      state.colorMap        - { id: { name, hex } }
- * @param {string}      state.orientation     - 'portrait' | 'landscape'
- * @param {{ rows: number, cols: number }} state.gridDimensions
+ * @param {Object} options - PDF yazdırma seçenekleri
+ * @param {string} options.paperSize - 'a4' | 'letter'
+ * @param {string} options.printMode - 'color' | 'bw'
  */
-export const generateActivityPDF = async (state) => {
+export const generateActivityPDF = async (state, options = { paperSize: 'a4', printMode: 'color' }) => {
   try {
     const {
       pixelGrid,
       solutionGrid,
       colorMap,
       orientation = 'portrait',
-      gridDimensions = { rows: 16, cols: 16 }
+      gridDimensions = { rows: 16, cols: 16 },
+      processingMode,
+      aiqesReport
     } = state;
 
     // Veri doğrulama
@@ -276,14 +384,14 @@ export const generateActivityPDF = async (state) => {
     // Yönelime göre güvenli değer (jsPDF yalnızca portrait ve landscape destekler)
     const safeOrientation = orientation === 'landscape' ? 'landscape' : 'portrait';
 
-    // Sayfa boyutlarını yönelime göre hesapla
-    const dims = getPageDimensions(safeOrientation);
+    // Sayfa boyutlarını yönelime göre hesapla (a4 veya letter)
+    const dims = getPageDimensions(safeOrientation, options.paperSize);
 
     // jsPDF dokümanını oluştur
     const doc = new jsPDF({
       orientation: safeOrientation,
       unit: 'mm',
-      format: 'a4'
+      format: options.paperSize === 'letter' ? 'letter' : 'a4'
     });
 
     // Roboto Türkçe destekli fontunu ekle (Dinamik import ile 1.4MB'lık dosya sadece PDF indirilirken yüklenir)
@@ -301,12 +409,18 @@ export const generateActivityPDF = async (state) => {
 
     // ---- Sayfa 1: Öğrenci Etkinlik Kağıdı ----
     doc.setFont('Roboto', 'normal');
-    drawStudentPage(doc, pixelGrid, colorMap || {}, gridDimensions, dims);
+    drawStudentPage(doc, pixelGrid, colorMap || {}, gridDimensions, dims, state, options);
 
     // ---- Sayfa 2: Öğretmen Çözüm Anahtarı ----
     doc.addPage();
     doc.setFont('Roboto', 'normal');
-    drawSolutionPage(doc, solutionData, colorMap || {}, gridDimensions, dims);
+    drawSolutionPage(doc, solutionData, colorMap || {}, gridDimensions, dims, state, options);
+
+    // ---- Sayfa 3: AIQES Raporu (Sadece Eğitsel Yapay Zeka modundaysa) ----
+    if (processingMode === 'educational_ai' && aiqesReport) {
+      doc.addPage();
+      drawAIQESPage(doc, aiqesReport, dims, state, options);
+    }
 
     // ---- PDF Blob Döndür ----
     return doc.output('blob');

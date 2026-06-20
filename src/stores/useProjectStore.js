@@ -2,6 +2,12 @@ import { create } from 'zustand';
 import { calculateGridDimensions } from '../utils/gridDimensions';
 
 const useProjectStore = create((set) => ({
+  // Pipeline Modu
+  processingMode: 'classic', // 'classic' | 'educational_ai'
+  
+  // AIQES Raporu
+  aiqesReport: null,
+
   // Yüklenen / ham görsel (rawImage)
   uploadedImage: null,
 
@@ -64,6 +70,10 @@ const useProjectStore = create((set) => ({
   regenerateTrigger: 0,
 
   // --- Aksiyonlar ---
+
+  setProcessingMode: (mode) => set({ processingMode: mode }),
+
+  setAiqesReport: (report) => set({ aiqesReport: report }),
 
   setUploadedImage: (image) => set({ uploadedImage: image }),
 
@@ -247,6 +257,8 @@ const useProjectStore = create((set) => ({
 
   // --- Sıfırlama ---
   reset: () => set({
+    processingMode: 'classic',
+    aiqesReport: null,
     uploadedImage: null,
     imageAspectRatio: null,
     originalImageData: null,

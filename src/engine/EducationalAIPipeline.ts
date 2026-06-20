@@ -1,0 +1,55 @@
+import { AIOptimizationLoop, OptimizationInput } from './AIOptimizationLoop';
+import { processImageToGrid } from './transform/pixelEngine';
+import { AgeGroup, Difficulty } from './grid/types';
+import { ColorInfo } from './color/types';
+import { PALETTE } from './color/colorDistance';
+import { ShapePreservationEngine } from './transform/ShapePreservationEngine';
+
+export class EducationalAIPipeline {
+  /**
+   * Complete pipeline: takes the original uploaded image, finds the optimal configuration,
+   * generates the final pixel grid, and returns it alongside the AIQES report.
+   */
+  public static async execute(
+    sourceImageData: ImageData,
+    ageGroup: AgeGroup,
+    difficulty: Difficulty
+  ) {
+    // 1. Run the AI Optimization Loop to find the perfect configuration
+    const input: OptimizationInput = {
+      sourceImageData,
+      rawColors: PALETTE as ColorInfo[],
+      ageGroup,
+      difficulty,
+      targetScore: 85
+    };
+
+    const bestState = await AIOptimizationLoop.optimize(input);
+
+    // 2. We now have the best state. We need to generate the FINAL pixel grid.
+    // First, apply the winning shape preservation configuration.
+    const finalPreservedImage = ShapePreservationEngine.apply(sourceImageData, {
+      medianRadius: bestState.config.medianRadius,
+      edgeThreshold: bestState.config.highContrastMode ? 30 : 50
+    });
+
+    // 3. Run the classic pixel conversion but with the AI's strict instructions
+    // Note: difficultyLevel controls maxColors in classic. We pass difficulty as a fallback.
+    const difficultyLevelMap: Record<Difficulty, number> = { easy: 1, balanced: 2, advanced: 3 };
+    const numericDifficulty = difficultyLevelMap[difficulty] || 2;
+    const pixelGridResult = await processImageToGrid(
+      finalPreservedImage,
+      bestState.metrics.gridHeight,
+      bestState.metrics.gridWidth,
+      numericDifficulty
+    );
+
+    return {
+      pixelGrid: pixelGridResult.pixelGrid,
+      colorMap: pixelGridResult.colorMap,
+      aiqesReport: bestState.report,
+      gridDimensions: { width: bestState.metrics.gridWidth, height: bestState.metrics.gridHeight },
+      optimizationState: bestState
+    };
+  }
+}

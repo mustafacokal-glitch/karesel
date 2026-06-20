@@ -34,6 +34,8 @@ export default function ControlPanel() {
   const imageAspectRatio = useProjectStore((s) => s.imageAspectRatio);
   const pixelGrid = useProjectStore((s) => s.pixelGrid);
   const uploadedImage = useProjectStore((s) => s.uploadedImage);
+  const processingMode = useProjectStore((s) => s.processingMode);
+  const setProcessingMode = useProjectStore((s) => s.setProcessingMode);
 
   const applyDifficultyChange = (lvlValue) => {
     const hadGrid = !!pixelGrid;
@@ -75,16 +77,51 @@ export default function ControlPanel() {
 
   return (
     <div className="bg-white rounded-2xl shadow-md p-5 space-y-6">
+      {/* Mod Seçici */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">
+          🤖 Üretim Modu
+        </h3>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setProcessingMode('classic')}
+            className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-all border-2 ${
+              processingMode === 'classic'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+            }`}
+          >
+            🎨 Klasik Mod
+          </button>
+          <button
+            onClick={() => setProcessingMode('educational_ai')}
+            className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-all border-2 ${
+              processingMode === 'educational_ai'
+                ? 'bg-purple-600 text-white border-purple-600 shadow-md'
+                : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:bg-purple-50'
+            }`}
+          >
+            🧠 Eğitsel Yapay Zeka
+          </button>
+        </div>
+        {processingMode === 'educational_ai' && (
+          <p className="text-xs text-purple-600 mt-2 font-medium">
+            * Yapay zeka, çocuğun yaşına göre renk ve zorluğu otomatik optimize edecektir.
+          </p>
+        )}
+      </div>
+
       {/* Sınıf Seviyesi */}
       <div>
         <h3 className="text-sm font-semibold text-gray-700 mb-3">
           👦 Hangi Sınıfa Hazırlıyorsunuz?
         </h3>
-        <div className="flex gap-2">
+        <div className="flex gap-2" role="group" aria-label="Sınıf Seviyesi Seçimi">
           {grades.map((grade) => (
             <button
               key={grade}
               onClick={() => handleGradeClick(grade)}
+              aria-pressed={gradeLevel === grade}
               className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-all border-2 ${
                 gradeLevel === grade
                   ? 'bg-blue-600 text-white border-blue-600 shadow-md'
@@ -136,6 +173,8 @@ export default function ControlPanel() {
                 <button
                   title={titleAttr}
                   onClick={() => handleDifficultyClick(miniLevel.value)}
+                  aria-pressed={difficultyLevel === miniLevel.value}
+                  aria-label={`${miniLevel.label} Seviyesi, ${miniLevel.sublabel}`}
                   className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 border-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${opacityClass} ${
                     difficultyLevel === miniLevel.value
                       ? 'bg-amber-500 text-white border-amber-500 shadow-md scale-[1.01]'
@@ -201,6 +240,8 @@ export default function ControlPanel() {
                 <button
                   title={titleAttr}
                   onClick={() => handleDifficultyClick(lvl.value)}
+                  aria-pressed={difficultyLevel === lvl.value}
+                  aria-label={`${lvl.label} Seviyesi, ${displayGrid} Boyut`}
                   className={`w-full flex flex-col items-center justify-center px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border-2 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${opacityClass} ${
                     difficultyLevel === lvl.value
                       ? 'bg-purple-600 text-white border-purple-600 shadow-md scale-[1.02]'
@@ -234,10 +275,11 @@ export default function ControlPanel() {
         <h3 className="text-sm font-semibold text-gray-700 mb-3">
           📄 Kağıt Yönü
         </h3>
-        <div className="flex gap-2">
+        <div className="flex gap-2" role="group" aria-label="Kağıt Yönü Seçimi">
           {orientations.map((opt) => (
             <button
               key={opt.value}
+              aria-pressed={orientation === opt.value}
               onClick={() => {
                 setOrientation(opt.value);
               }}

@@ -1,11 +1,11 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import useProjectStore from '../stores/useProjectStore';
 import { removeBackground } from '../engine/transform/bgRemover';
-import { processImageToGrid } from '../engine/transform/pixelEngine';
 import { PALETTE, colorDistLAB } from '../engine/color/colorDistance';
 import { applySmartCleaners, removeGridBackground } from '../engine/grid/gridCleaners';
 import { generateActivityPDF } from '../pdf/pdfGenerator';
 import { calculateGridDimensions } from '../utils/gridDimensions';
+import { WorkerManager } from '../workers/WorkerManager';
 import { downloadGridAsPNG } from '../utils/pngExporter';
 import { launchConfetti } from '../utils/confetti';
 import { PIPELINE_CONFIG } from '../config/pipelineConfig';
@@ -186,6 +186,10 @@ export default function ActionButtons() {
   const future = useProjectStore((s) => s.future);
   const regenerateTrigger = useProjectStore((s) => s.regenerateTrigger);
 
+  const [showPdfOptions, setShowPdfOptions] = useState(false);
+  const [pdfPaperSize, setPdfPaperSize] = useState('a4');
+  const [pdfPrintMode, setPdfPrintMode] = useState('color');
+
   // Listen to Undo/Redo keyboard shortcuts in edit mode
   useEffect(() => {
     if (!isEditMode) return;
@@ -277,52 +281,87 @@ export default function ActionButtons() {
       }
 
       // 3. PixelEngine ile grid'e çevir
-      const imgRatio = img.width / img.height;
-      const { rows, cols } = calculateGridDimensions(difficultyLevel, imgRatio);
+      const processingMode = useProjectStore.getState().processingMode;
 
-      // Store'daki gridDimensions'ı güncelle
-      useProjectStore.getState().setGridDimensions({ rows, cols });
+      if (processingMode === 'educational_ai') {
+        const gradeLevel = useProjectStore.getState().gradeLevel || '1';
+        let ageGroup = 'kindergarten';
+        if (gradeLevel === '1' || gradeLevel === '2') ageGroup = 'grade1-2';
+        else if (gradeLevel === '3' || gradeLevel === '4') ageGroup = 'grade3-4';
 
-      await new Promise(r => setTimeout(r, 10)); // UI'ın loading state'ini çizmesine izin ver
-      const { pixelGrid, colorMap } = await processImageToGrid(cleanData, rows, cols, difficultyLevel);
+        const difficultyMap = { 1: 'easy', 2: 'balanced', 3: 'advanced', 4: 'advanced' };
+        const diff = difficultyMap[difficultyLevel] || 'balanced';
 
-      // Kolay modlarda (1 ve 2) pikselli bloklu yapıyı korumak için iskeletleştirmeyi (thinning) kapatıyoruz.
-      // Sadece uzman modunda (4) devreye alıyoruz.
-      const enableThinning = difficultyLevel >= 4; 
-      await new Promise(r => setTimeout(r, 10)); // Event loop'a nefes aldır
-      const { cleanGrid, cleanColors } = applySmartCleaners(pixelGrid, colorMap, PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE.ID, enableThinning);
+        useProjectStore.getState().setDownloadProgressText(`🤖 Yapay Zeka Düşünüyor...`);
+        await new Promise(r => setTimeout(r, 10)); // UI paint
 
-      // 5. Zorluk seviyesine göre renk sayısını sınırla
-      const maxColors = DIFFICULTY_MAX_COLORS[difficultyLevel] || 10;
-      const { reducedGrid, reducedColorMap } = reduceColors(cleanGrid, cleanColors, maxColors);
+        const aiResult = await WorkerManager.runAIPipeline(cleanData, ageGroup, diff);
 
-      // Renk birleştirmelerinden sonra oluşan gürültüleri gidermek için ikinci bir hafif temizlik pası çalıştır
-      const postCleanResult = applySmartCleaners(reducedGrid, reducedColorMap, PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE.ID, false);
-      const finalCleanGrid = postCleanResult.cleanGrid;
-      const finalCleanColors = postCleanResult.cleanColors;
-
-      // 6. Renkleri sırala (Sequentialize)
-      const { sequentialGrid, sequentialColorMap } = sequentializeColors(finalCleanGrid, finalCleanColors);
-
-      // 7. SON TEMİZLİK: Gürültü filtrelerinden (reduceColors vs.) geçtikten sonra 
-      // yanlışlıkla Beyaz'a (#FFFFFF) yuvarlanmış ve kenara dokunan tüm arka plan lekelerini temizle
-      let finalGrid = sequentialGrid;
-      let whiteSeqId = null;
-      for (const [id, colorObj] of Object.entries(sequentialColorMap)) {
-        if (colorObj.hex === '#FFFFFF') {
-          whiteSeqId = Number(id);
-          break;
+        const { sequentialGrid, sequentialColorMap } = sequentializeColors(aiResult.pixelGrid, aiResult.colorMap);
+        
+        let finalGrid = sequentialGrid;
+        let whiteSeqId = null;
+        for (const [id, colorObj] of Object.entries(sequentialColorMap)) {
+          if (colorObj.hex === '#FFFFFF') {
+            whiteSeqId = Number(id);
+            break;
+          }
         }
-      }
+        if (whiteSeqId !== null) {
+          finalGrid = removeGridBackground(finalGrid, whiteSeqId);
+        }
 
-      if (whiteSeqId !== null) {
-        finalGrid = removeGridBackground(finalGrid, whiteSeqId);
-      }
+        useProjectStore.getState().setGridDimensions(aiResult.gridDimensions);
+        setPixelGrid(finalGrid);
+        setSolutionGrid(finalGrid);
+        setColorMap(sequentialColorMap);
+        useProjectStore.getState().setAiqesReport(aiResult.aiqesReport);
+        useProjectStore.getState().setDownloadProgressText(null);
 
-      // 8. Store'a kaydet
-      setPixelGrid(finalGrid);
-      setSolutionGrid(finalGrid); // Çözüm anahtarı = temizlenmiş + renk azaltılmış grid
-      setColorMap(sequentialColorMap);
+      } else {
+        const imgRatio = img.width / img.height;
+        const { rows, cols } = calculateGridDimensions(difficultyLevel, imgRatio);
+
+        // Store'daki gridDimensions'ı güncelle
+        useProjectStore.getState().setGridDimensions({ rows, cols });
+
+        await new Promise(r => setTimeout(r, 10)); // UI'ın loading state'ini çizmesine izin ver
+        
+        // Classic modda Image Processing
+        const { cleanGrid, cleanColors } = await WorkerManager.runClassicPipeline(cleanData, rows, cols, difficultyLevel);
+
+        // 5. Zorluk seviyesine göre renk sayısını sınırla
+        const maxColors = DIFFICULTY_MAX_COLORS[difficultyLevel] || 10;
+        const { reducedGrid, reducedColorMap } = reduceColors(cleanGrid, cleanColors, maxColors);
+
+        // Renk birleştirmelerinden sonra oluşan gürültüleri gidermek için ikinci bir hafif temizlik pası çalıştır
+        const postCleanResult = applySmartCleaners(reducedGrid, reducedColorMap, PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE.ID, false);
+        const finalCleanGrid = postCleanResult.cleanGrid;
+        const finalCleanColors = postCleanResult.cleanColors;
+
+        // 6. Renkleri sırala (Sequentialize)
+        const { sequentialGrid, sequentialColorMap } = sequentializeColors(finalCleanGrid, finalCleanColors);
+
+        // 7. SON TEMİZLİK: Gürültü filtrelerinden (reduceColors vs.) geçtikten sonra 
+        // yanlışlıkla Beyaz'a (#FFFFFF) yuvarlanmış ve kenara dokunan tüm arka plan lekelerini temizle
+        let finalGrid = sequentialGrid;
+        let whiteSeqId = null;
+        for (const [id, colorObj] of Object.entries(sequentialColorMap)) {
+          if (colorObj.hex === '#FFFFFF') {
+            whiteSeqId = Number(id);
+            break;
+          }
+        }
+
+        if (whiteSeqId !== null) {
+          finalGrid = removeGridBackground(finalGrid, whiteSeqId);
+        }
+
+        // 8. Store'a kaydet
+        setPixelGrid(finalGrid);
+        setSolutionGrid(finalGrid); // Çözüm anahtarı = temizlenmiş + renk azaltılmış grid
+        setColorMap(sequentialColorMap);
+      }
 
       // Başarı durumunda konfeti patlat!
       launchConfetti();
@@ -346,10 +385,15 @@ export default function ActionButtons() {
   /**
    * PDF indirme
    */
-  const handleDownloadPDF = useCallback(async () => {
+  const executePdfDownload = async () => {
     try {
+      setShowPdfOptions(false);
+      setProcessing(true);
+      useProjectStore.getState().setDownloadProgressText(`🖨️ PDF Hazırlanıyor...`);
+      await new Promise(r => setTimeout(r, 10)); // UI paint
+
       const state = useProjectStore.getState();
-      const pdfBlob = await generateActivityPDF(state);
+      const pdfBlob = await generateActivityPDF(state, { paperSize: pdfPaperSize, printMode: pdfPrintMode });
       
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
@@ -362,8 +406,11 @@ export default function ActionButtons() {
     } catch (err) {
       console.error('[ActionButtons] PDF hatasi:', err);
       setError(err.message || 'PDF olusturulamadi.');
+    } finally {
+      setProcessing(false);
+      useProjectStore.getState().setDownloadProgressText(null);
     }
-  }, [setError]);
+  };
 
   /**
    * PNG (Görsel) indirme
@@ -413,7 +460,7 @@ export default function ActionButtons() {
       {/* PDF İndir */}
        <button
           onClick={() => {
-            handleDownloadPDF();
+            setShowPdfOptions(true);
           }}
           disabled={!pixelGrid || pixelGrid.length === 0}
           className={`px-5 py-2.5 rounded-xl font-medium text-sm transition-all border-2 ${
@@ -506,6 +553,45 @@ export default function ActionButtons() {
             ↪️ İleri Al
           </button>
         </>
+      )}
+
+      {/* PDF Options Modal */}
+      {showPdfOptions && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="pdf-modal-title"
+        >
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm" tabIndex={-1}>
+            <h3 id="pdf-modal-title" className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              🖨️ PDF Yazdırma Ayarları
+            </h3>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Kağıt Boyutu</label>
+                <div className="flex gap-2" role="group" aria-label="Kağıt Boyutu Seçimi">
+                  <button onClick={() => setPdfPaperSize('a4')} aria-pressed={pdfPaperSize === 'a4'} className={`flex-1 py-2 rounded-lg text-sm font-medium border-2 ${pdfPaperSize === 'a4' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>A4</button>
+                  <button onClick={() => setPdfPaperSize('letter')} aria-pressed={pdfPaperSize === 'letter'} className={`flex-1 py-2 rounded-lg text-sm font-medium border-2 ${pdfPaperSize === 'letter' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>US Letter</button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Baskı Modu</label>
+                <div className="flex gap-2" role="group" aria-label="Baskı Modu Seçimi">
+                  <button onClick={() => setPdfPrintMode('color')} aria-pressed={pdfPrintMode === 'color'} className={`flex-1 py-2 rounded-lg text-sm font-medium border-2 ${pdfPrintMode === 'color' ? 'border-pink-600 bg-pink-50 text-pink-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>🎨 Renkli</button>
+                  <button onClick={() => setPdfPrintMode('bw')} aria-pressed={pdfPrintMode === 'bw'} className={`flex-1 py-2 rounded-lg text-sm font-medium border-2 ${pdfPrintMode === 'bw' ? 'border-gray-800 bg-gray-100 text-gray-800' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>⚫ Siyah-Beyaz</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowPdfOptions(false)} className="px-4 py-2 rounded-xl text-gray-600 font-medium hover:bg-gray-100">İptal</button>
+              <button onClick={executePdfDownload} className="px-5 py-2 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-md">PDF Oluştur</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

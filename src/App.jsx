@@ -5,6 +5,7 @@ import ControlPanel from './components/ControlPanel';
 import Workspace from './components/Workspace';
 import ColorLegend from './components/ColorLegend';
 import ActionButtons from './components/ActionButtons';
+import AIQESDashboard from './components/AIQESDashboard';
 import useProjectStore from './stores/useProjectStore';
 
 // Error Boundary: herhangi bir bileşen hatası tüm uygulamayı çökertmesin
@@ -121,6 +122,9 @@ export default function App() {
             <main className="flex-1 min-w-0 space-y-6">
               <ErrorBoundary>
                 <Workspace />
+              </ErrorBoundary>
+              <ErrorBoundary>
+                <AIQESDashboard />
               </ErrorBoundary>
               <div className="flex justify-center pt-2 pb-6">
                 <ErrorBoundary>
