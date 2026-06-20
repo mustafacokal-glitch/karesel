@@ -7,6 +7,7 @@ import { generateActivityPDF } from '../core/pdfGenerator';
 import { calculateGridDimensions } from '../utils/gridDimensions';
 import { downloadGridAsPNG } from '../utils/pngExporter';
 import { launchConfetti } from '../utils/confetti';
+import { PIPELINE_CONFIG } from '../core/pipelineConfig';
 
 /**
  * Zorluk seviyesine göre maksimum renk sayısı
@@ -46,14 +47,15 @@ function reduceColors(grid, colorMap, maxColors) {
     return { reducedGrid: grid, reducedColorMap: colorMap };
   }
 
-  // Dokunulmaz detay renkleri: Siyah(24), Kahverengi(22), Koyu Kırmızı(8), Sarı(4), Koyu Sarı(5), Turuncu(6)
-  const PROTECTED_IDS = new Set([24, 22, 8, 6, 5, 4]);
+  // Dokunulmaz detay renkleri
+  const PROTECTED_IDS = new Set(PIPELINE_CONFIG.REDUCE_COLORS.PROTECTED_IDS);
+  const PENALTY = PIPELINE_CONFIG.REDUCE_COLORS.PROTECTED_WEIGHT_PENALTY;
 
   // Frekansa göre artan sırala (en az kullanılan önce)
   // Korunan renklerin frekansını suni olarak devasa yaparak silinmelerini engelle
   usedIds.sort((a, b) => {
-    const weightA = PROTECTED_IDS.has(a) ? freq[a] + 1000000 : freq[a];
-    const weightB = PROTECTED_IDS.has(b) ? freq[b] + 1000000 : freq[b];
+    const weightA = PROTECTED_IDS.has(a) ? freq[a] + PENALTY : freq[a];
+    const weightB = PROTECTED_IDS.has(b) ? freq[b] + PENALTY : freq[b];
     return weightA - weightB;
   });
 
@@ -64,8 +66,8 @@ function reduceColors(grid, colorMap, maxColors) {
   while (activeIds.size > maxColors) {
     // En az kullanılan rengi al
     const rareId = [...activeIds].sort((a, b) => {
-      const weightA = PROTECTED_IDS.has(a) ? freq[a] + 1000000 : freq[a];
-      const weightB = PROTECTED_IDS.has(b) ? freq[b] + 1000000 : freq[b];
+      const weightA = PROTECTED_IDS.has(a) ? freq[a] + PENALTY : freq[a];
+      const weightB = PROTECTED_IDS.has(b) ? freq[b] + PENALTY : freq[b];
       return weightA - weightB;
     })[0];
     activeIds.delete(rareId);
@@ -280,14 +282,14 @@ export default function ActionButtons() {
       // Sadece uzman modunda (4) devreye alıyoruz.
       const enableThinning = difficultyLevel >= 4; 
       await new Promise(r => setTimeout(r, 10)); // Event loop'a nefes aldır
-      const { cleanGrid, cleanColors } = applySmartCleaners(pixelGrid, colorMap, 24, enableThinning);
+      const { cleanGrid, cleanColors } = applySmartCleaners(pixelGrid, colorMap, PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE.ID, enableThinning);
 
       // 5. Zorluk seviyesine göre renk sayısını sınırla
       const maxColors = DIFFICULTY_MAX_COLORS[difficultyLevel] || 10;
       const { reducedGrid, reducedColorMap } = reduceColors(cleanGrid, cleanColors, maxColors);
 
       // Renk birleştirmelerinden sonra oluşan gürültüleri gidermek için ikinci bir hafif temizlik pası çalıştır
-      const postCleanResult = applySmartCleaners(reducedGrid, reducedColorMap, 24, false);
+      const postCleanResult = applySmartCleaners(reducedGrid, reducedColorMap, PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE.ID, false);
       const finalCleanGrid = postCleanResult.cleanGrid;
       const finalCleanColors = postCleanResult.cleanColors;
 

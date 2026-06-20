@@ -6,6 +6,8 @@
  * ============================================================
  */
 
+import { PIPELINE_CONFIG } from './pipelineConfig';
+
 // -----------------------------------------------------------
 // 1. SABİT RENK PALETİ (25'li Standart Kuru Boya)
 // -----------------------------------------------------------
@@ -37,7 +39,7 @@ export const PALETTE = [
 ];
 
 // Siyah renk ID'si (kontur kuralı için)
-const BLACK_ID = 24;
+const BLACK_ID = PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE.ID;
 // Boş hücre temsili için
 const EMPTY_ID = 0;
 
@@ -181,11 +183,12 @@ export async function processImageToGrid(imageData, rows, cols, difficultyLevel 
           const b = data[srcIdx + 2];
 
           // 1. FİLTRE: Açık gri ve kirli beyaz JPEG lekelerini sil
-          if (r > 215 && g > 215 && b > 215 && Math.abs(r - g) < 20 && Math.abs(g - b) < 20) {
+          const { MIN_RGB, MAX_DIFF } = PIPELINE_CONFIG.PIXEL_ENGINE.JPEG_NOISE;
+          if (r > MIN_RGB && g > MIN_RGB && b > MIN_RGB && Math.abs(r - g) < MAX_DIFF && Math.abs(g - b) < MAX_DIFF) {
             alpha = 0;
           }
 
-          if (alpha < 128) continue;
+          if (alpha < PIPELINE_CONFIG.PIXEL_ENGINE.ALPHA_THRESHOLD) continue;
 
           blockPixels.push({ r, g, b });
           sumR += r;
@@ -195,7 +198,7 @@ export async function processImageToGrid(imageData, rows, cols, difficultyLevel 
       }
 
       // 2. FİLTRE: Hücrenin %10'undan azı doluysa veya hiç piksel yoksa boş say
-      if (blockPixels.length < (totalPixels * 0.10) || blockPixels.length === 0) {
+      if (blockPixels.length < (totalPixels * PIPELINE_CONFIG.PIXEL_ENGINE.MIN_FILL_RATIO) || blockPixels.length === 0) {
         gridRow.push(EMPTY_ID);
         continue;
       }
@@ -220,14 +223,13 @@ export async function processImageToGrid(imageData, rows, cols, difficultyLevel 
 
         // Kontrast Duyarlılık (Contrast Boost): Blok ortalamasından algısal olarak uzak piksellere ağırlık ver
         const distToAvg = colorDistLAB(p, avgColor);
-        if (distToAvg > 800) {
-          weight *= 4.0; // Detay piksellere (örn. sarı çekirdek, beyaz parlama) 4 kat ağırlık
+        if (distToAvg > PIPELINE_CONFIG.PIXEL_ENGINE.CONTRAST_BOOST.DIST_THRESHOLD) {
+          weight *= PIPELINE_CONFIG.PIXEL_ENGINE.CONTRAST_BOOST.WEIGHT_MULTIPLIER;
         }
 
         // İnce detay renklerini korumak için korumalı renklere ekstra ağırlık ver
-        // Siyah(24), Kahverengi(22), Koyu Kırmızı(8), Sarı(4)
-        if (paletteId === 24 || paletteId === 22 || paletteId === 8 || paletteId === 4) {
-          weight *= 2.5;
+        if (PIPELINE_CONFIG.PIXEL_ENGINE.PROTECTED_COLORS.IDS.includes(paletteId)) {
+          weight *= PIPELINE_CONFIG.PIXEL_ENGINE.PROTECTED_COLORS.WEIGHT_MULTIPLIER;
         }
 
         freqMap.set(paletteId, (freqMap.get(paletteId) || 0) + weight);
@@ -235,7 +237,7 @@ export async function processImageToGrid(imageData, rows, cols, difficultyLevel 
 
       // Kontur Kuralı: Eğer blok içindeki siyah oranı %15'ten fazlaysa detayı korumak için direkt Siyah yap
       let modeId = EMPTY_ID;
-      if (blackCount > blockPixels.length * 0.15) {
+      if (blackCount > blockPixels.length * PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE.THRESHOLD_RATIO) {
         modeId = BLACK_ID;
       } else {
         // En çok tekrar eden (mode) rengi bul

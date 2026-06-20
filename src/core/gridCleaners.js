@@ -8,6 +8,7 @@
  * ============================================================
  */
 import { colorDistLAB, PALETTE } from './pixelEngine';
+import { PIPELINE_CONFIG } from './pipelineConfig';
 
 // Hızlı arama için PALETTE eşleme tablosu (O(1) erişim)
 const PALETTE_MAP = {};
@@ -86,7 +87,7 @@ export function zhangSuenThinning(grid, outlineId) {
     const result = grid.map(row => [...row]);
 
     let changed = true;
-    let maxIter = 30; // 30 iterasyon tipik grid desenleri için yeterli
+    let maxIter = PIPELINE_CONFIG.CLEANERS.ZHANG_SUEN.MAX_ITERATIONS;
     while (changed && maxIter-- > 0) {
       changed = false;
 
@@ -284,7 +285,7 @@ export function cleanIsolatedPixels(grid, _colors) {
     const result = grid.map(row => [...row]);
 
     // Dokunulmayacak kritik renk ID'leri
-    const PROTECTED = new Set([24, 4, 1]); // Siyah (24), Sarı (4), Beyaz (1)
+    const PROTECTED = new Set(PIPELINE_CONFIG.CLEANERS.ISOLATED_PIXELS.PROTECTED_IDS);
 
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
@@ -328,8 +329,8 @@ export function cleanIsolatedPixels(grid, _colors) {
             let shouldProtect = false;
             if (currentColorData && bestColorData) {
               const dist = colorDistLAB(currentColorData, bestColorData);
-              // CIELAB'da > 1500 çok yüksek bir zıtlık anlamına gelir (kareler toplamı)
-              if (dist > 1500) {
+              // CIELAB kontrast limiti
+              if (dist > PIPELINE_CONFIG.CLEANERS.ISOLATED_PIXELS.CONTRAST_THRESHOLD) {
                  shouldProtect = true;
               }
             }
@@ -399,10 +400,9 @@ export function fillHoles(grid) {
           }
         }
 
-        // Kural 1: Herhangi bir renkten 5 veya daha fazla varsa KESİN deliktir (eski kural)
-        // Kural 2: VEYA toplam dolu komşu sayısı 6 veya daha fazlaysa (iki rengin arasına sıkışmış bir delikse)
-        // En çok olan renge boya
-        if (maxCount >= 5 || totalNonZero >= 6) {
+        // Kural 1: Herhangi bir renkten eşik değerden fazla varsa
+        // Kural 2: VEYA toplam dolu komşu sayısı eşikten fazlaysa
+        if (maxCount >= PIPELINE_CONFIG.CLEANERS.FILL_HOLES.MIN_SAME_COLOR_NEIGHBORS || totalNonZero >= PIPELINE_CONFIG.CLEANERS.FILL_HOLES.MIN_NON_EMPTY_NEIGHBORS) {
           result[r][c] = maxColor;
         }
       }
@@ -608,7 +608,7 @@ export function smoothJaggedEdges(grid) {
     const result = grid.map(row => [...row]);
     
     // Daha çok korunması gereken kritik renkler
-    const PROTECTED = new Set([24, 1, 4, 7, 8, 14, 19, 20, 22]); // 7(Kırmızı) ve 14(Mavi) eklendi
+    const PROTECTED = new Set(PIPELINE_CONFIG.CLEANERS.SMOOTH_EDGES.PROTECTED_IDS);
 
     for (let r = 0; r < rows - 1; r++) {
       for (let c = 0; c < cols - 1; c++) {

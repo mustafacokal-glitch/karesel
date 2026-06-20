@@ -1,0 +1,54 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`gridCleaners - zhangSuenThinning > should thin a thick black outline to a 1-pixel line 1`] = `
+[
+  [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+  ],
+  [
+    0,
+    24,
+    24,
+    24,
+    24,
+    0,
+  ],
+  [
+    0,
+    24,
+    1,
+    1,
+    24,
+    0,
+  ],
+  [
+    0,
+    24,
+    1,
+    1,
+    24,
+    0,
+  ],
+  [
+    0,
+    24,
+    24,
+    24,
+    24,
+    0,
+  ],
+  [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+  ],
+]
+`;
