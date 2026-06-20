@@ -254,7 +254,14 @@ export default function ActionButtons() {
           cleanData = cachedBgRemovedData;
         } else {
           try {
-            cleanData = await removeBackground(imageData);
+            cleanData = await removeBackground(imageData, (info) => {
+              if (info.status === 'progress') {
+                const percentage = Math.round((info.loaded / info.total) * 100);
+                useProjectStore.getState().setDownloadProgressText(`🤖 Yapay Zeka İndiriliyor: %${percentage}`);
+              } else if (info.status === 'done' || info.status === 'ready') {
+                useProjectStore.getState().setDownloadProgressText(null);
+              }
+            });
             // Başarılı arka plan temizleme sonucunu önbelleğe al
             useProjectStore.getState().setOriginalImageData(cleanData);
           } catch (bgErr) {

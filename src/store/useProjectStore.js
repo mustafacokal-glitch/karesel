@@ -48,6 +48,8 @@ const useProjectStore = create((set) => ({
   // Hata durumu
   error: null,
 
+  downloadProgressText: null,
+
   // Canvas referansı (PNG indirme vb. işlemler için DOM node referansı taşır)
   canvasRef: null,
 
@@ -99,6 +101,8 @@ const useProjectStore = create((set) => ({
   setProcessing: (status) => set({ isProcessing: status }),
 
   setError: (error) => set({ error }),
+
+  setDownloadProgressText: (text) => set({ downloadProgressText: text }),
 
   setCanvasRef: (ref) => set({ canvasRef: ref }),
 

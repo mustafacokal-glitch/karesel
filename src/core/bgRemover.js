@@ -14,9 +14,11 @@ env.allowLocalModels = false;
 
 let segmentator = null;
 
-async function getSegmentator() {
+async function getSegmentator(onProgress) {
   if (!segmentator) {
-    segmentator = await pipeline('image-segmentation', 'briaai/RMBG-1.4');
+    segmentator = await pipeline('image-segmentation', 'briaai/RMBG-1.4', {
+      progress_callback: onProgress
+    });
   }
   return segmentator;
 }
@@ -28,9 +30,9 @@ async function getSegmentator() {
  * @param {ImageData} imageData - Canvas'tan alınan piksel verisi
  * @returns {Promise<ImageData>} Arka planı şeffaflaştırılmış ImageData
  */
-export async function removeBackground(imageData) {
+export async function removeBackground(imageData, onProgress) {
   try {
-    const segmenter = await getSegmentator();
+    const segmenter = await getSegmentator(onProgress);
 
     // 1. Gerekirse görseli küçült (Maksimum boyut 1024px)
     const MAX_SIZE = 1024;

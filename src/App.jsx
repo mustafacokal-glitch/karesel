@@ -46,6 +46,7 @@ class ErrorBoundary extends Component {
 
 function LoadingOverlay() {
   const isProcessing = useProjectStore((s) => s.isProcessing);
+  const downloadProgressText = useProjectStore((s) => s.downloadProgressText);
 
   if (!isProcessing) return null;
 
@@ -54,10 +55,10 @@ function LoadingOverlay() {
       <div className="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 max-w-sm mx-4">
         <div className="w-14 h-14 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
         <p className="text-lg font-semibold text-gray-700 text-center">
-          🤖 Görsel İşleniyor, Lütfen Bekleyin...
+          {downloadProgressText || "🤖 Görsel İşleniyor, Lütfen Bekleyin..."}
         </p>
         <p className="text-sm text-gray-400 text-center">
-          Arka plan temizleniyor, pikseller düzenleniyor ve renkler eşleştiriliyor.
+          {downloadProgressText ? "Bu işlem yalnızca ilk kullanımda bir kereliğine gerçekleştirilir." : "Arka plan temizleniyor, pikseller düzenleniyor ve renkler eşleştiriliyor."}
         </p>
       </div>
     </div>
