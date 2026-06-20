@@ -84,6 +84,7 @@ function getDistance(c1, c2) {
  */
 export function getPaletteForDifficulty(level) {
   if (level <= 2) {
+    // level 0 (Mini) bu dalı miras alır
     // Sadece ana ve temel ara renkler (Kahverengi, Siyah, Beyaz dahil)
     const allowedIds = [1, 4, 6, 7, 14, 19, 22, 24]; 
     return PALETTE.filter(c => allowedIds.includes(c.id));

@@ -1,4 +1,5 @@
 const DIFFICULTY_TARGETS = {
+  0: 9,   // Mini (1. Sınıf) — 8x8-10x10 aralığını hedefler, tek sayı=tek simetri ekseni
   1: 15,
   2: 30,
   3: 40,

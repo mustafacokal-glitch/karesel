@@ -11,6 +11,12 @@ const useProjectStore = create((set) => ({
   // Arka plan silinmiş orijinal ImageData (canvas'ten alınan)
   originalImageData: null,
 
+  // Sınıf seviyesi (1-4)
+  gradeLevel: null,
+
+  // Zorluk manuel olarak seçildi mi?
+  difficultyManuallySet: false,
+
   // Zorluk seviyesi: 1-4 arası sayı (1=kolay, 2=orta, 3=zor, 4=uzman)
   difficultyLevel: 2,
 
@@ -59,6 +65,10 @@ const useProjectStore = create((set) => ({
   setImageAspectRatio: (ratio) => set({ imageAspectRatio: ratio }),
 
   setOriginalImageData: (data) => set({ originalImageData: data }),
+
+  setGradeLevel: (level) => set({ gradeLevel: level }),
+
+  setDifficultyManuallySet: (value) => set({ difficultyManuallySet: value }),
 
   setDifficultyLevel: (level) => set((state) => {
     const { rows, cols } = calculateGridDimensions(level, state.imageAspectRatio);
@@ -231,6 +241,8 @@ const useProjectStore = create((set) => ({
     uploadedImage: null,
     imageAspectRatio: null,
     originalImageData: null,
+    gradeLevel: null,
+    difficultyManuallySet: false,
     difficultyLevel: 2,
     gridDimensions: { rows: 30, cols: 30 },
     pixelGrid: null,

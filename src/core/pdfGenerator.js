@@ -8,6 +8,7 @@
 
 import { jsPDF } from 'jspdf';
 import { ROBOTO_REGULAR, ROBOTO_BOLD } from './robotoFonts';
+import { getPageDimensions, MIN_CELL_SIZE_MM, needsTiling, computeTilingPlan, TILE_HEADER_HEIGHT_MM } from '../utils/printLayout';
 
 // ---------------------------------------------------------------------------
 // Yardımcı Fonksiyonlar
@@ -48,39 +49,45 @@ function getContrastColor(hex) {
 
 
 // ---------------------------------------------------------------------------
-// Sabitler yardımcı fonksiyon (mm cinsinden, yönelime göre hesaplanır)
+// Lejant Sayfası Çizimi (Bağımsız)
 // ---------------------------------------------------------------------------
 
 /**
- * Verilen yönelime göre A4 sayfa boyutlarını döndürür.
- * jsPDF 'landscape' modunda genişlik ile yüksekliği yer değiştirir.
+ * Renk tablosunu (lejant) ayrı bir sayfaya çizer.
  */
-function getPageDimensions(orientation) {
-  if (orientation === 'landscape') {
-    return {
-      PAGE_WIDTH: 297,
-      PAGE_HEIGHT: 210,
-      MARGIN_LEFT: 15,
-      MARGIN_RIGHT: 15,
-      MARGIN_TOP: 15,
-      MARGIN_BOTTOM: 15,
-      get USABLE_WIDTH() { return this.PAGE_WIDTH - this.MARGIN_LEFT - this.MARGIN_RIGHT; },
-      get USABLE_HEIGHT() { return this.PAGE_HEIGHT - this.MARGIN_TOP - this.MARGIN_BOTTOM; },
-    };
-  }
-  // portrait (varsayılan)
-  return {
-    PAGE_WIDTH: 210,
-    PAGE_HEIGHT: 297,
-    MARGIN_LEFT: 15,
-    MARGIN_RIGHT: 15,
-    MARGIN_TOP: 20,
-    MARGIN_BOTTOM: 20,
-    get USABLE_WIDTH() { return this.PAGE_WIDTH - this.MARGIN_LEFT - this.MARGIN_RIGHT; },
-    get USABLE_HEIGHT() { return this.PAGE_HEIGHT - this.MARGIN_TOP - this.MARGIN_BOTTOM; },
-  };
-}
+function drawLegendPage(doc, colorMap, dims) {
+  const { PAGE_WIDTH, PAGE_HEIGHT, MARGIN_LEFT, MARGIN_TOP, USABLE_WIDTH } = dims;
+  const isLandscape = PAGE_WIDTH > PAGE_HEIGHT;
+  const legendCols = isLandscape ? 5 : 3;
 
+  const colorIds = Object.keys(colorMap).sort((a, b) => Number(a) - Number(b));
+  const legendEntries = colorIds.map((id) => {
+    const entry = colorMap[id];
+    const name = entry?.name || entry?.label || `Renk ${id}`;
+    return `${id} - ${normalizeText(name)}`;
+  });
+
+  let legendY = MARGIN_TOP + 10;
+
+  doc.setFont('Roboto', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(0, 0, 0);
+  doc.text(normalizeText('Renk Tablosu (Lejant)'), PAGE_WIDTH / 2, legendY, { align: 'center' });
+
+  legendY += 15;
+
+  doc.setFont('Roboto', 'normal');
+  doc.setFontSize(11);
+
+  const legendColWidth = USABLE_WIDTH / legendCols;
+  legendEntries.forEach((entry, i) => {
+    const colIdx = i % legendCols;
+    const rowIdx = Math.floor(i / legendCols);
+    const x = MARGIN_LEFT + colIdx * legendColWidth;
+    const y = legendY + 4 + rowIdx * 10; // Daha rahat satır aralığı
+    doc.text(entry, x, y);
+  });
+}
 
 // Sayfa 1 — Öğrenci Etkinlik Kağıdı
 // ---------------------------------------------------------------------------
@@ -172,26 +179,7 @@ function drawStudentPage(doc, pixelGrid, colorMap, gridDimensions, dims) {
   // ---- 4. Renk Tablosu (Lejant) ----
   if (needSeparateLegendPage) {
     doc.addPage();
-    let legendY = MARGIN_TOP + 10;
-
-    doc.setFont('Roboto', 'bold');
-    doc.setFontSize(16);
-    doc.setTextColor(0, 0, 0);
-    doc.text(normalizeText('Renk Tablosu (Lejant)'), PAGE_WIDTH / 2, legendY, { align: 'center' });
-
-    legendY += 15;
-
-    doc.setFont('Roboto', 'normal');
-    doc.setFontSize(11);
-
-    const legendColWidth = USABLE_WIDTH / legendCols;
-    legendEntries.forEach((entry, i) => {
-      const colIdx = i % legendCols;
-      const rowIdx = Math.floor(i / legendCols);
-      const x = MARGIN_LEFT + colIdx * legendColWidth;
-      const y = legendY + 4 + rowIdx * 10; // Daha rahat satır aralığı
-      doc.text(entry, x, y);
-    });
+    drawLegendPage(doc, colorMap, dims);
   } else {
     const rawLegendY = gridStartY + gridHeight + 6;
     const maxLegendY = PAGE_HEIGHT - MARGIN_BOTTOM - legendHeight - 4;
@@ -306,6 +294,205 @@ function drawSolutionPage(doc, solutionGrid, colorMap, gridDimensions, dims) {
 }
 
 // ---------------------------------------------------------------------------
+// Karo (Tiling) Modu Fonksiyonları
+// ---------------------------------------------------------------------------
+
+/**
+ * Parçalı yazdırma işlemi için birleştirme kılavuzu sayfası.
+ */
+function drawAssemblyGuidePage(doc, plan, dims) {
+  const { PAGE_WIDTH, MARGIN_TOP } = dims;
+  
+  doc.setFont('Roboto', 'bold');
+  doc.setFontSize(18);
+  doc.setTextColor(0, 0, 0);
+  doc.text(normalizeText('Birleştirme Kılavuzu'), PAGE_WIDTH / 2, MARGIN_TOP + 10, { align: 'center' });
+  
+  doc.setFont('Roboto', 'normal');
+  doc.setFontSize(12);
+  const totalTiles = plan.numTileRows * plan.numTileCols;
+  const desc = `Bu etkinlik ${totalTiles} parçaya bölünmüştür.\nAşağıdaki sıraya göre kağıtları yapıştırarak birleştirin.`;
+  
+  const textLines = doc.splitTextToSize(normalizeText(desc), dims.USABLE_WIDTH);
+  doc.text(textLines, PAGE_WIDTH / 2, MARGIN_TOP + 25, { align: 'center' });
+  
+  const boxSize = 25;
+  const guideWidth = plan.numTileCols * boxSize;
+  
+  const startX = (PAGE_WIDTH - guideWidth) / 2;
+  const startY = MARGIN_TOP + 50;
+  
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.3);
+  
+  for (let r = 0; r < plan.numTileRows; r++) {
+    for (let c = 0; c < plan.numTileCols; c++) {
+      const x = startX + c * boxSize;
+      const y = startY + r * boxSize;
+      
+      doc.setFillColor(245, 245, 245);
+      doc.rect(x, y, boxSize, boxSize, 'FD');
+      
+      doc.setFont('Roboto', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(50, 50, 50);
+      const label = `${r + 1}.${c + 1}`;
+      doc.text(label, x + (boxSize / 2), y + (boxSize / 2), { align: 'center', baseline: 'middle' });
+    }
+  }
+}
+
+/**
+ * Karo modunda öğrenci sayfasını çizer.
+ */
+function drawStudentPageTiled(doc, pixelGrid, gridDimensions, dims, plan) {
+  const { rows, cols } = gridDimensions;
+  const { PAGE_WIDTH, PAGE_HEIGHT, MARGIN_LEFT, MARGIN_RIGHT, MARGIN_TOP, MARGIN_BOTTOM, USABLE_WIDTH } = dims;
+
+  let firstPage = true;
+
+  for (let tileRow = 0; tileRow < plan.numTileRows; tileRow++) {
+    for (let tileCol = 0; tileCol < plan.numTileCols; tileCol++) {
+      if (!firstPage) {
+        doc.addPage();
+      }
+      firstPage = false;
+
+      doc.setFont('Roboto', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(0, 0, 0);
+      const title = normalizeText(`Karesel Kodlama Etkinliği — Parça ${tileRow + 1}.${tileCol + 1} / ${plan.numTileRows}x${plan.numTileCols}`);
+      doc.text(title, PAGE_WIDTH / 2, MARGIN_TOP + 8, { align: 'center' });
+
+      const rowStart = tileRow * plan.rowsPerTile;
+      const rowEnd = Math.min(rows, rowStart + plan.rowsPerTile);
+      const colStart = tileCol * plan.colsPerTile;
+      const colEnd = Math.min(cols, colStart + plan.colsPerTile);
+
+      const currentTileRows = rowEnd - rowStart;
+      const currentTileCols = colEnd - colStart;
+
+      const gridWidth = plan.cellSize * currentTileCols;
+      
+      const gridStartX = MARGIN_LEFT + (USABLE_WIDTH - gridWidth) / 2;
+      const gridStartY = MARGIN_TOP + TILE_HEADER_HEIGHT_MM + 5;
+
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.15);
+
+      for (let r = 0; r < currentTileRows; r++) {
+        for (let c = 0; c < currentTileCols; c++) {
+          const actualRow = rowStart + r;
+          const actualCol = colStart + c;
+
+          const x = gridStartX + c * plan.cellSize;
+          const y = gridStartY + r * plan.cellSize;
+
+          doc.rect(x, y, plan.cellSize, plan.cellSize);
+
+          const cellValue = pixelGrid[actualRow]?.[actualCol];
+          if (cellValue && cellValue > 0) {
+            doc.setFont('Roboto', 'bold');
+            doc.setFontSize(Math.min(plan.cellSize * 1.8, 20));
+            doc.setTextColor(0, 0, 0);
+            const numStr = String(cellValue);
+            doc.text(numStr, x + (plan.cellSize / 2), y + (plan.cellSize / 2), { align: 'center', baseline: 'middle' });
+          }
+        }
+      }
+
+      doc.setFont('Roboto', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(100, 100, 100);
+      const footerY = PAGE_HEIGHT - MARGIN_BOTTOM + 10;
+      doc.text(normalizeText('Karesel Kodlama Stüdyosu'), MARGIN_LEFT, footerY);
+      doc.text('www.mustafacokal.com.tr', PAGE_WIDTH - MARGIN_RIGHT, footerY, { align: 'right' });
+    }
+  }
+}
+
+/**
+ * Karo modunda çözüm anahtarı sayfasını çizer.
+ */
+function drawSolutionPageTiled(doc, solutionGrid, colorMap, gridDimensions, dims, plan) {
+  const { rows, cols } = gridDimensions;
+  const { PAGE_WIDTH, MARGIN_LEFT, MARGIN_TOP, USABLE_WIDTH } = dims;
+
+  let firstPage = true;
+
+  for (let tileRow = 0; tileRow < plan.numTileRows; tileRow++) {
+    for (let tileCol = 0; tileCol < plan.numTileCols; tileCol++) {
+      if (!firstPage) {
+        doc.addPage();
+      }
+      firstPage = false;
+
+      doc.setFont('Roboto', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(0, 0, 0);
+      const title = normalizeText(`ÇÖZÜM ANAHTARI — Parça ${tileRow + 1}.${tileCol + 1} / ${plan.numTileRows}x${plan.numTileCols}`);
+      doc.text(title, PAGE_WIDTH / 2, MARGIN_TOP + 8, { align: 'center' });
+
+      const rowStart = tileRow * plan.rowsPerTile;
+      const rowEnd = Math.min(rows, rowStart + plan.rowsPerTile);
+      const colStart = tileCol * plan.colsPerTile;
+      const colEnd = Math.min(cols, colStart + plan.colsPerTile);
+
+      const currentTileRows = rowEnd - rowStart;
+      const currentTileCols = colEnd - colStart;
+
+      const gridWidth = plan.cellSize * currentTileCols;
+      
+      const gridStartX = MARGIN_LEFT + (USABLE_WIDTH - gridWidth) / 2;
+      const gridStartY = MARGIN_TOP + TILE_HEADER_HEIGHT_MM + 5;
+
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.15);
+
+      for (let r = 0; r < currentTileRows; r++) {
+        for (let c = 0; c < currentTileCols; c++) {
+          const actualRow = rowStart + r;
+          const actualCol = colStart + c;
+
+          const x = gridStartX + c * plan.cellSize;
+          const y = gridStartY + r * plan.cellSize;
+
+          const cellValue = solutionGrid[actualRow]?.[actualCol];
+
+          if (cellValue && cellValue > 0) {
+            const colorEntry = colorMap[cellValue];
+            if (colorEntry) {
+              const hex = colorEntry.hex || colorEntry.color || '#000000';
+              const { r: cr, g: cg, b: cb } = hexToRgb(hex);
+              doc.setFillColor(cr, cg, cb);
+              doc.rect(x, y, plan.cellSize, plan.cellSize, 'F');
+            }
+          }
+
+          doc.setDrawColor(0, 0, 0);
+          doc.rect(x, y, plan.cellSize, plan.cellSize);
+
+          if (cellValue && cellValue > 0) {
+            const colorEntry = colorMap[cellValue];
+            let textColor = '#000000';
+            if (colorEntry) {
+              const hex = colorEntry.hex || colorEntry.color || '#000000';
+              textColor = getContrastColor(hex);
+            }
+            const { r: cr, g: cg, b: cb } = hexToRgb(textColor);
+            doc.setTextColor(cr, cg, cb);
+            doc.setFont('Roboto', 'bold');
+            doc.setFontSize(Math.min(plan.cellSize * 1.7, 18));
+            const numStr = String(cellValue);
+            doc.text(numStr, x + (plan.cellSize / 2), y + (plan.cellSize / 2), { align: 'center', baseline: 'middle' });
+          }
+        }
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Ana Dışa Aktarım Fonksiyonu
 // ---------------------------------------------------------------------------
 
@@ -353,19 +540,37 @@ export const generateActivityPDF = (state) => {
     doc.addFileToVFS('Roboto-Bold.ttf', ROBOTO_BOLD);
     doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
 
-    // ---- Sayfa 1: Öğrenci Etkinlik Kağıdı ----
-    doc.setFont('Roboto', 'normal');
-    drawStudentPage(doc, pixelGrid, colorMap || {}, gridDimensions, dims);
-
-    // ---- Sayfa 2: Öğretmen Çözüm Anahtarı ----
-    doc.addPage();
-
     const solutionData = solutionGrid && Array.isArray(solutionGrid) && solutionGrid.length > 0
       ? solutionGrid
       : pixelGrid;
 
-    doc.setFont('Roboto', 'normal');
-    drawSolutionPage(doc, solutionData, colorMap || {}, gridDimensions, dims);
+    const { rows, cols } = gridDimensions;
+    const tilingNeeded = needsTiling(rows, cols, safeOrientation);
+
+    if (!tilingNeeded) {
+      // ---- Sayfa 1: Öğrenci Etkinlik Kağıdı ----
+      doc.setFont('Roboto', 'normal');
+      drawStudentPage(doc, pixelGrid, colorMap || {}, gridDimensions, dims);
+
+      // ---- Sayfa 2: Öğretmen Çözüm Anahtarı ----
+      doc.addPage();
+      doc.setFont('Roboto', 'normal');
+      drawSolutionPage(doc, solutionData, colorMap || {}, gridDimensions, dims);
+    } else {
+      // ---- Tiling Modu Aktif ----
+      const plan = computeTilingPlan(rows, cols, safeOrientation);
+      
+      drawAssemblyGuidePage(doc, plan, dims);
+      
+      doc.addPage();
+      drawStudentPageTiled(doc, pixelGrid, gridDimensions, dims, plan);
+      
+      doc.addPage();
+      drawLegendPage(doc, colorMap || {}, dims);
+      
+      doc.addPage();
+      drawSolutionPageTiled(doc, solutionData, colorMap || {}, gridDimensions, dims, plan);
+    }
 
     // ---- PDF'i indir ----
     doc.save('Karesel-Kodlama-Etkinligi.pdf');

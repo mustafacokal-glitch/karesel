@@ -12,6 +12,7 @@ import { launchConfetti } from '../utils/confetti';
  * Zorluk seviyesine göre maksimum renk sayısı
  */
 const DIFFICULTY_MAX_COLORS = {
+  0: 8,
   1: 8,
   2: 12,
   3: 16,
