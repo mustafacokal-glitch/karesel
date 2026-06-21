@@ -463,17 +463,31 @@ export default function ActionButtons() {
       const state = useProjectStore.getState();
       const pdfBlob = await WorkerManager.generatePDF(state, { paperSize: pdfPaperSize, printMode: pdfPrintMode });
       
+      const currentCount = parseInt(localStorage.getItem('kareselPdfCount') || '1', 10);
+      const formattedCount = currentCount.toString().padStart(2, '0');
+
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'Karesel-Kodlama-Etkinligi.pdf';
+      link.download = `karesel-kodlama-calismasi-${formattedCount}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+
+      localStorage.setItem('kareselPdfCount', (currentCount + 1).toString());
     } catch (err: any) {
       console.error('[ActionButtons] PDF hatasi:', err);
-      setError(new PDFGenerationError().message);
+      const msg = err?.message || '';
+      if (msg.includes('DataClone') || msg.includes('could not be cloned')) {
+        setError('PDF hazırlanırken veri aktarım hatası oluştu. Sayfayı yenileyip tekrar deneyin.');
+      } else if (msg.includes('timed out') || msg.includes('timeout')) {
+        setError('PDF oluşturma zaman aşımına uğradı. Daha küçük bir grid deneyin.');
+      } else if (err instanceof KareselError) {
+        setError(err.message);
+      } else {
+        setError(new PDFGenerationError().message);
+      }
     } finally {
       setProcessing(false);
       useProjectStore.getState().setDownloadProgressText(null);

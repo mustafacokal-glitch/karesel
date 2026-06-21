@@ -406,11 +406,11 @@ export const generateActivityPDF = async (state: any, options: any = { paperSize
       const response = await fetch(url);
       if (!response.ok) throw new Error(`Font yüklenemedi: ${url}`);
       const buffer = await response.arrayBuffer();
-      let binary = '';
       const bytes = new Uint8Array(buffer);
-      const len = bytes.byteLength;
-      for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(bytes[i]);
+      const CHUNK = 8192;
+      let binary = '';
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
       }
       return btoa(binary);
     };

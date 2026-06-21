@@ -97,12 +97,22 @@ export class WorkerManager {
   }
 
   static async generatePDF(state: any, options: any): Promise<Blob> {
+    const pdfState = {
+      pixelGrid: state.pixelGrid,
+      solutionGrid: state.solutionGrid,
+      colorMap: state.colorMap,
+      orientation: state.orientation,
+      gridDimensions: state.gridDimensions,
+      processingMode: state.processingMode,
+      aiqesReport: state.aiqesReport,
+      difficultyLevel: state.difficultyLevel,
+    };
     if (typeof window !== 'undefined' && typeof Worker !== 'undefined') {
       // Priority: LOW. The PDF worker is dedicated so it runs parallel to AI.
-      return await workerPool.enqueue('GENERATE_PDF', 'LOW', { state, options }, [], 60000);
+      return await workerPool.enqueue('GENERATE_PDF', 'LOW', { state: pdfState, options }, [], 60000);
     } else {
       // Fallback
-      return await generateActivityPDF(state, options);
+      return await generateActivityPDF(pdfState, options);
     }
   }
 }
