@@ -42,12 +42,11 @@ function processWorkerResult(result: any) {
 export class WorkerManager {
   static async runAIPipeline(imageData: ImageData, ageGroup: any, difficulty: string, colorTolerance: number, offsetX: number = 0, offsetY: number = 0): Promise<any> {
     if (typeof window !== 'undefined' && typeof Worker !== 'undefined') {
-      const buffer = imageData.data.buffer;
       const result = await workerPool.enqueue(
         'RUN_AI_PIPELINE', 
         'NORMAL', 
         {
-          imageDataArray: buffer,
+          imageDataArray: imageData.data.buffer,
           width: imageData.width,
           height: imageData.height,
           ageGroup,
@@ -56,7 +55,7 @@ export class WorkerManager {
           offsetX,
           offsetY
         }, 
-        [buffer], 
+        [], 
         45000 // 45s timeout
       );
       return processWorkerResult(result);
@@ -68,12 +67,11 @@ export class WorkerManager {
 
   static async runClassicPipeline(imageData: ImageData, rows: number, cols: number, difficultyLevel: number, offsetX: number = 0, offsetY: number = 0): Promise<any> {
     if (typeof window !== 'undefined' && typeof Worker !== 'undefined') {
-      const buffer = imageData.data.buffer;
       const result = await workerPool.enqueue(
         'RUN_CLASSIC_PIPELINE', 
         'NORMAL', 
         {
-          imageDataArray: buffer,
+          imageDataArray: imageData.data.buffer,
           width: imageData.width,
           height: imageData.height,
           rows,
@@ -82,7 +80,7 @@ export class WorkerManager {
           offsetX,
           offsetY
         }, 
-        [buffer], 
+        [], 
         15000 // 15s timeout
       );
       return processWorkerResult(result);

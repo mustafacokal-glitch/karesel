@@ -301,7 +301,7 @@ export default function ActionButtons() {
       if (!hasTransparency) {
         // Önbellekte daha önce temizlenmiş görsel var mı kontrol et
         const cachedBgRemovedData = useProjectStore.getState().originalImageData;
-        if (cachedBgRemovedData) {
+        if (cachedBgRemovedData && cachedBgRemovedData.data.buffer.byteLength > 0) {
           cleanData = cachedBgRemovedData;
         } else {
           try {
