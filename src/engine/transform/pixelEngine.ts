@@ -1,7 +1,7 @@
 /**
  * ============================================================
  *  pixelEngine.ts — Projenin Matematiksel Kalbi
- *  Mode-Pooling (Çoğunluk Oylaması) + RGB Öklid Palette Eşleme
+ *  Mode-Pooling (Çoğunluk Oylaması) + LAB Renk Uzayında Palette Eşleme
  *  + Kontur Koruması (%15 Siyah kuralı)
  * ============================================================
  */
@@ -36,6 +36,7 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
   const blockH = height / rows;
 
   const pixelGrid: number[][] = [];
+  const blackRatioGrid: number[][] = [];
   const usedColorIds = new Set<number>();
   const allowedPalette = getPaletteForDifficulty(difficultyLevel);
 
@@ -44,6 +45,8 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
   const blockR = new Uint8Array(maxBlockSize);
   const blockG = new Uint8Array(maxBlockSize);
   const blockB = new Uint8Array(maxBlockSize);
+  const blockX = new Uint16Array(maxBlockSize);
+  const blockY = new Uint16Array(maxBlockSize);
 
   // Buffer for fast LAB conversions
   const sharedLAB = new Float64Array(3);
@@ -57,6 +60,7 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
     }
 
     const gridRow = [];
+    const blackRatioRow = [];
 
     for (let col = 0; col < cols; col++) {
       const xStart = Math.floor(col * blockW);
@@ -93,6 +97,8 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
           blockR[blockPixelCount] = r;
           blockG[blockPixelCount] = g;
           blockB[blockPixelCount] = b;
+          blockX[blockPixelCount] = x;
+          blockY[blockPixelCount] = y;
           blockPixelCount++;
 
           sumR += r;
@@ -104,6 +110,7 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
       // 2. FİLTRE: Hücrenin %10'undan azı doluysa veya hiç piksel yoksa boş say
       if (blockPixelCount < (totalPixels * PIPELINE_CONFIG.PIXEL_ENGINE.MIN_FILL_RATIO) || blockPixelCount === 0) {
         gridRow.push(EMPTY_ID);
+        blackRatioRow.push(0);
         continue;
       }
 
@@ -111,6 +118,11 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
       const avgG = sumG / blockPixelCount;
       const avgB = sumB / blockPixelCount;
       const [avgL, avgA, avgB_] = rgb2lab(avgR, avgG, avgB);
+
+      const cellCenterX = (xStart + xEnd) / 2;
+      const cellCenterY = (yStart + yEnd) / 2;
+      const halfW = Math.max((xEnd - xStart) / 2, 1);
+      const halfH = Math.max((yEnd - yStart) / 2, 1);
 
       // 2. Geçiş: Palette eşleme ve kontrast ağırlıklı oylama
       const freqMap = new Map();
@@ -143,6 +155,12 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
         }
 
         let weight = 1.0;
+
+        const ndx = (blockX[i] - cellCenterX) / halfW;
+        const ndy = (blockY[i] - cellCenterY) / halfH;
+        const normDist = Math.min(Math.sqrt(ndx * ndx + ndy * ndy), 1);
+        const { MIN, MAX } = PIPELINE_CONFIG.PIXEL_ENGINE.CENTER_WEIGHT;
+        weight *= MAX - (MAX - MIN) * normDist;
 
         // Kontrast Duyarlılık (Contrast Boost)
         const distToAvg = colorDistLABFlat(pL, pA, pB, avgL, avgA, avgB_, 1.0);
@@ -177,14 +195,49 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
       // Mode bulunamazsa boş
       if (modeId === EMPTY_ID) {
         gridRow.push(EMPTY_ID);
+        blackRatioRow.push(blockPixelCount > 0 ? blackCount / blockPixelCount : 0);
         continue;
       }
 
       gridRow.push(modeId);
+      blackRatioRow.push(blockPixelCount > 0 ? blackCount / blockPixelCount : 0);
       usedColorIds.add(modeId);
     }
 
     pixelGrid.push(gridRow);
+    blackRatioGrid.push(blackRatioRow);
+  }
+
+  // 3. Geçiş: Edge-Aware Downscaling (Senkron Güncelleme)
+  const { SECONDARY_THRESHOLD_RATIO, MIN_NEIGHBOR_SUPPORT } = PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE;
+  
+  // AŞAMA A: Sadece TESPİT et, henüz DEĞİŞTİRME (cascading'i önlemek için)
+  const cellsToBlacken: [number, number][] = [];
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      if (pixelGrid[row][col] === BLACK_ID) continue;
+      if (blackRatioGrid[row][col] < SECONDARY_THRESHOLD_RATIO) continue;
+
+      let blackNeighbors = 0;
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = row + dr, nc = col + dc;
+          if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+          // pixelGrid burada hâlâ DEĞİŞMEMİŞ orijinal hal
+          if (pixelGrid[nr][nc] === BLACK_ID) blackNeighbors++;
+        }
+      }
+      if (blackNeighbors >= MIN_NEIGHBOR_SUPPORT) {
+        cellsToBlacken.push([row, col]);
+      }
+    }
+  }
+
+  // AŞAMA B: Tespit bitti, ŞİMDİ topluca uygula (senkron update)
+  for (const [r, c] of cellsToBlacken) {
+    pixelGrid[r][c] = BLACK_ID;
+    usedColorIds.add(BLACK_ID);
   }
 
   // colorMap

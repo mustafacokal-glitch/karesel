@@ -2,7 +2,8 @@ import { workerPool } from './WorkerPool';
 import { EducationalAIPipeline } from '../engine/EducationalAIPipeline';
 import { processImageToGrid } from '../engine/transform/pixelEngine';
 import { applySmartCleaners } from '../engine/grid/gridCleaners';
-import { PIPELINE_CONFIG } from '../config/pipelineConfig';
+import { PIPELINE_CONFIG, SHAPE_PRESERVATION_BY_DIFFICULTY } from '../config/pipelineConfig';
+import { ShapePreservationEngine } from '../engine/transform/ShapePreservationEngine';
 import { generateActivityPDF } from '../pdf/pdfGenerator';
 
 function unflattenGrid(flat: Uint16Array, rows: number, cols: number): number[][] {
@@ -86,7 +87,9 @@ export class WorkerManager {
       return processWorkerResult(result);
     } else {
       // Vitest / Node fallback
-      const { pixelGrid, colorMap } = await processImageToGrid(imageData, rows, cols, difficultyLevel, offsetX, offsetY);
+      const preservationConfig = SHAPE_PRESERVATION_BY_DIFFICULTY[difficultyLevel] || SHAPE_PRESERVATION_BY_DIFFICULTY[2];
+      const preservedImageData = ShapePreservationEngine.apply(imageData, preservationConfig);
+      const { pixelGrid, colorMap } = await processImageToGrid(preservedImageData, rows, cols, difficultyLevel, offsetX, offsetY);
       const enableThinning = difficultyLevel >= 4; 
       const { cleanGrid, cleanColors } = applySmartCleaners(pixelGrid, colorMap, PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE.ID, enableThinning);
       return { cleanGrid, cleanColors };

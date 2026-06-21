@@ -25,7 +25,13 @@ export const PIPELINE_CONFIG = {
     },
     OUTLINE: {
       ID: 24, // Siyah
-      THRESHOLD_RATIO: 0.15 // 15%
+      THRESHOLD_RATIO: 0.15, // 15%
+      SECONDARY_THRESHOLD_RATIO: 0.06,
+      MIN_NEIGHBOR_SUPPORT: 2
+    },
+    CENTER_WEIGHT: {
+      MIN: 1.0,
+      MAX: 1.5
     }
   },
 
@@ -52,4 +58,11 @@ export const PIPELINE_CONFIG = {
       PROTECTED_IDS: [24, 1, 4, 7, 8, 14, 19, 20, 22] // Siyah, Beyaz, Sarı, Kırmızı, Koyu Kırmızı, Mavi, Yeşil, Koyu Yeşil, Kahverengi
     }
   }
+};
+
+export const SHAPE_PRESERVATION_BY_DIFFICULTY: Record<number, { medianRadius: number; edgeThreshold: number }> = {
+  1: { medianRadius: 1, edgeThreshold: 45 }, // Mini - 1. sınıf, en agresif temizlik
+  2: { medianRadius: 1, edgeThreshold: 50 },
+  3: { medianRadius: 1, edgeThreshold: 55 },
+  4: { medianRadius: 0, edgeThreshold: 60 }, // Advanced - detay korunsun, blur YOK
 };

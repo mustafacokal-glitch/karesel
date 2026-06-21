@@ -2,7 +2,8 @@
 import { EducationalAIPipeline } from '../engine/EducationalAIPipeline';
 import { processImageToGrid } from '../engine/transform/pixelEngine';
 import { applySmartCleaners } from '../engine/grid/gridCleaners';
-import { PIPELINE_CONFIG } from '../config/pipelineConfig';
+import { PIPELINE_CONFIG, SHAPE_PRESERVATION_BY_DIFFICULTY } from '../config/pipelineConfig';
+import { ShapePreservationEngine } from '../engine/transform/ShapePreservationEngine';
 
 function flattenGrid(grid: number[][]): Uint16Array {
   const rows = grid.length;
@@ -42,7 +43,10 @@ self.onmessage = async (e: MessageEvent) => {
       
       const imageData = new ImageData(new Uint8ClampedArray(imageDataArray), width, height);
       
-      const { pixelGrid, colorMap } = await processImageToGrid(imageData, rows, cols, difficultyLevel, offsetX, offsetY);
+      const preservationConfig = SHAPE_PRESERVATION_BY_DIFFICULTY[difficultyLevel] || SHAPE_PRESERVATION_BY_DIFFICULTY[2];
+      const preservedImageData = ShapePreservationEngine.apply(imageData, preservationConfig);
+      
+      const { pixelGrid, colorMap } = await processImageToGrid(preservedImageData, rows, cols, difficultyLevel, offsetX, offsetY);
       
       const enableThinning = difficultyLevel >= 4; 
       const { cleanGrid, cleanColors } = applySmartCleaners(pixelGrid, colorMap, PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE.ID, enableThinning);
