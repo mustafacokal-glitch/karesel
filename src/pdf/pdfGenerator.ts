@@ -290,74 +290,6 @@ function drawSolutionPage(doc: jsPDF, solutionGrid: any, colorMap: any, gridDime
 // Sayfa 3 — AIQES Eğitsel Değerlendirme Raporu
 // ---------------------------------------------------------------------------
 
-function drawAIQESPage(doc: jsPDF, aiqesReport: any, dims: any, _state: any, _options: any) {
-  const { PAGE_WIDTH, MARGIN_LEFT, MARGIN_RIGHT, MARGIN_TOP } = dims;
-
-  doc.setFont('Roboto', 'bold');
-  doc.setFontSize(22);
-  doc.setTextColor(0, 0, 0);
-  LTRTextRenderer.renderText(doc, normalizeText('Eğitsel Değerlendirme Raporu (AIQES)'), PAGE_WIDTH / 2, MARGIN_TOP + 15, { align: 'center' });
-
-  doc.setFont('Roboto', 'normal');
-  doc.setFontSize(12);
-  doc.setTextColor(100, 100, 100);
-  LTRTextRenderer.renderText(doc, normalizeText('Karesel Yapay Zeka (AI) Pedagojik Analiz Sonuçları'), PAGE_WIDTH / 2, MARGIN_TOP + 23, { align: 'center' });
-
-  // Puan Kutusu
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.5);
-  doc.rect(PAGE_WIDTH / 2 - 40, MARGIN_TOP + 35, 80, 25);
-  doc.setFont('Roboto', 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(0, 0, 0);
-  LTRTextRenderer.renderText(doc, normalizeText('Eğitsel Uygunluk Puanı'), PAGE_WIDTH / 2, MARGIN_TOP + 45, { align: 'center' });
-  doc.setFontSize(20);
-  LTRTextRenderer.renderText(doc, `${aiqesReport.aiqesScore} / 100`, PAGE_WIDTH / 2, MARGIN_TOP + 55, { align: 'center' });
-
-  let currentY = MARGIN_TOP + 75;
-
-  const drawSection = (title: string, items: string[], icon: string) => {
-    if (!items || items.length === 0) return;
-    
-    doc.setFont('Roboto', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(0, 0, 0);
-    LTRTextRenderer.renderText(doc, normalizeText(`${icon} ${title}`), MARGIN_LEFT + 10, currentY);
-    currentY += 8;
-
-    doc.setFont('Roboto', 'normal');
-    doc.setFontSize(11);
-    doc.setTextColor(50, 50, 50);
-
-    items.forEach((item: string) => {
-      // Split text to fit width
-      const lines = doc.splitTextToSize(`- ${normalizeText(item)}`, PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT - 20);
-      LTRTextRenderer.renderText(doc, lines, MARGIN_LEFT + 15, currentY);
-      currentY += (lines.length * 5) + 3;
-    });
-    currentY += 10;
-  };
-
-  const strengths: string[] = [];
-  const suggestions: string[] = [];
-
-  const metrics = [
-    aiqesReport.recognizability, aiqesReport.shapePreservation, 
-    aiqesReport.educationalComplexity, aiqesReport.colorSimplicity, 
-    aiqesReport.worksheetEffort, aiqesReport.motivation
-  ];
-
-  metrics.forEach(m => {
-    if (m.score >= 85) strengths.push(m.explanation);
-    if (m.score < 100 && m.recommendations) {
-      m.recommendations.forEach((r: string) => suggestions.push(r));
-    }
-  });
-
-  drawSection('Etkinliğin Güçlü Yönleri', strengths, '+');
-  drawSection('Öğretmene Tavsiyeler', suggestions, '>');
-}
-
 
 // ---------------------------------------------------------------------------
 // Ana Dışa Aktarım Fonksiyonu
@@ -378,9 +310,7 @@ export const generateActivityPDF = async (state: any, options: any = { paperSize
       solutionGrid,
       colorMap,
       orientation = 'portrait',
-      gridDimensions = { rows: 16, cols: 16 },
-      processingMode,
-      aiqesReport
+      gridDimensions = { rows: 16, cols: 16 }
     } = state;
 
     // Veri doğrulama
@@ -442,10 +372,7 @@ export const generateActivityPDF = async (state: any, options: any = { paperSize
     drawSolutionPage(doc, solutionData, colorMap || {}, gridDimensions, dims, state, options);
 
     // ---- Sayfa 3: AIQES Raporu (Sadece Eğitsel Yapay Zeka modundaysa) ----
-    if (processingMode === 'educational_ai' && aiqesReport) {
-      // doc.addPage();
-      // drawAIQESPage(doc, aiqesReport, dims, state, options);
-    }
+    
 
     // ---- PDF Blob Döndür ----
     return doc.output('blob');

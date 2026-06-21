@@ -277,7 +277,7 @@ const useProjectStore = create<ProjectStore>((set) => ({
   // --- Sıfırlama ---
   reset: () => set({
     processingMode: 'educational_ai',
-    intent: 'educational',
+    intent: 'pedagogical-fidelity',
     aiqesReport: null,
     uploadedImage: null,
     imageAspectRatio: null,
