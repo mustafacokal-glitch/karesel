@@ -84,7 +84,8 @@ export function getPaletteForDifficulty(level: number) {
     const allowedIds = [1, 4, 6, 7, 14, 19, 22, 24]; 
     return PALETTE.filter(c => allowedIds.includes(c.id));
   } else if (level === 3) {
-    const allowedIds = [1, 4, 5, 6, 7, 9, 11, 14, 16, 19, 22, 23, 24];
+    // id:2 (Krem) ve id:3 (Koyu Ten) eklendi
+    const allowedIds = [1, 2, 3, 4, 5, 6, 7, 9, 11, 14, 16, 19, 22, 23, 24];
     return PALETTE.filter(c => allowedIds.includes(c.id));
   }
   return PALETTE;

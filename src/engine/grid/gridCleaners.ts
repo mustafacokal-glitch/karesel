@@ -656,21 +656,19 @@ export function removeGridBackground(grid: number[][], targetColorId = 1): numbe
     const queue: [number, number][] = [];
     const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
     
-    // 1. Kenar hücreleri (padding alanlarını) bul ve kuyruğa ekle
+    // SADECE kenarlardaki Boşluk (0) ve Beyaz (1) renkleri başlangıç noktası kabul et
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             if (r === 0 || r === rows - 1 || c === 0 || c === cols - 1) {
-                // Boşluk (0) veya Hedef Renk ise arka planın başlangıcıdır
                 if (result[r][c] === 0 || result[r][c] === targetColorId) {
                     queue.push([r, c]);
                     visited[r][c] = true;
-                    if (result[r][c] === targetColorId) result[r][c] = 0; // Hedef rengi anında sil
+                    if (result[r][c] === targetColorId) result[r][c] = 0;
                 }
             }
         }
     }
     
-    // 2. BFS (Sihirli Değnek) ile içeri doğru yayıl
     const dirs = [[-1,0], [1,0], [0,-1], [0,1]];
     let head = 0;
     while (head < queue.length) {
@@ -681,10 +679,10 @@ export function removeGridBackground(grid: number[][], targetColorId = 1): numbe
             const nc = c + dc;
             
             if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !visited[nr][nc]) {
-                // Eğer yayıldığımız komşu Hedef Renk veya Boş (0) ise yola devam et
+                // BFS sadece Boş (0) veya Beyaz (1) alanlara yayılabilir
                 if (result[nr][nc] === 0 || result[nr][nc] === targetColorId) {
                     visited[nr][nc] = true;
-                    if (result[nr][nc] === targetColorId) result[nr][nc] = 0; // Temizle
+                    if (result[nr][nc] === targetColorId) result[nr][nc] = 0;
                     queue.push([nr, nc]);
                 }
             }

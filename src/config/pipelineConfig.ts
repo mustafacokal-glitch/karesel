@@ -63,6 +63,7 @@ export const PIPELINE_CONFIG = {
 export const SHAPE_PRESERVATION_BY_DIFFICULTY: Record<number, { medianRadius: number; edgeThreshold: number }> = {
   1: { medianRadius: 1, edgeThreshold: 45 }, // Mini - 1. sınıf, en agresif temizlik
   2: { medianRadius: 1, edgeThreshold: 50 },
-  3: { medianRadius: 1, edgeThreshold: 55 },
+  // Zor seviyesinde detay kaybını (kontur kırılmasını) önlemek için medianRadius 0 yapıldı
+  3: { medianRadius: 0, edgeThreshold: 55 },
   4: { medianRadius: 0, edgeThreshold: 60 }, // Advanced - detay korunsun, blur YOK
 };
