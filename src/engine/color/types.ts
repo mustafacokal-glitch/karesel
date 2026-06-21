@@ -4,6 +4,7 @@ export interface ColorConfig {
   highContrastMode: boolean;
   maxColors?: number;
   preserveOutlines?: boolean;
+  tolerance?: number;
 }
 
 export interface ColorInfo {

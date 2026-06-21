@@ -243,7 +243,9 @@ export default function ActionButtons() {
         difficulty: difficultyLevel,
         ageLevel: ageGroup,
         colorSettings: `max_${DIFFICULTY_MAX_COLORS[difficultyLevel] || 10}`,
-        processingMode
+        processingMode,
+        offsetX: useProjectStore.getState().offsetX,
+        offsetY: useProjectStore.getState().offsetY
       });
 
       const cachedResult = SmartCache.get(cacheKey);
@@ -330,7 +332,7 @@ export default function ActionButtons() {
         useProjectStore.getState().setDownloadProgressText(`🤖 Yapay Zeka Düşünüyor...`);
         await new Promise(r => setTimeout(r, 10)); // UI paint
 
-        const aiResult = await WorkerManager.runAIPipeline(cleanData, ageGroup as any, diff as any);
+        const aiResult = await WorkerManager.runAIPipeline(cleanData, ageGroup as any, diff as any, useProjectStore.getState().colorTolerance, useProjectStore.getState().offsetX, useProjectStore.getState().offsetY);
 
         const { sequentialGrid, sequentialColorMap } = sequentializeColors(aiResult.pixelGrid, aiResult.colorMap);
         
@@ -379,7 +381,7 @@ export default function ActionButtons() {
         await new Promise(r => setTimeout(r, 10)); // UI'ın loading state'ini çizmesine izin ver
         
         // Classic modda Image Processing
-        const { cleanGrid, cleanColors } = await WorkerManager.runClassicPipeline(cleanData, rows, cols, difficultyLevel);
+        const { cleanGrid, cleanColors } = await WorkerManager.runClassicPipeline(cleanData, rows, cols, difficultyLevel, useProjectStore.getState().offsetX, useProjectStore.getState().offsetY);
 
         // 5. Zorluk seviyesine göre renk sayısını sınırla
         const maxColors = DIFFICULTY_MAX_COLORS[difficultyLevel] || 10;

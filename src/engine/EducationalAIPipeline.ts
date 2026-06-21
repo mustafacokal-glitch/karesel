@@ -14,7 +14,10 @@ export class EducationalAIPipeline {
   public static async execute(
     sourceImageData: ImageData,
     ageGroup: AgeGroup,
-    difficulty: Difficulty
+    difficulty: Difficulty,
+    colorTolerance: number = 50,
+    offsetX: number = 0,
+    offsetY: number = 0
   ) {
     // 1. Run the AI Optimization Loop to find the perfect configuration
     const input: OptimizationInput = {
@@ -22,7 +25,8 @@ export class EducationalAIPipeline {
       rawColors: PALETTE as ColorInfo[],
       ageGroup,
       difficulty,
-      targetScore: 85
+      targetScore: 85,
+      colorTolerance
     };
 
     const bestState = await AIOptimizationLoop.optimize(input);
@@ -42,7 +46,9 @@ export class EducationalAIPipeline {
       finalPreservedImage,
       bestState.metrics.gridHeight,
       bestState.metrics.gridWidth,
-      numericDifficulty
+      numericDifficulty,
+      offsetX,
+      offsetY
     );
 
     const enableThinning = numericDifficulty >= 4;

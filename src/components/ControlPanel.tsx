@@ -38,6 +38,12 @@ export default function ControlPanel() {
   const uploadedImage = useProjectStore((s) => s.uploadedImage);
   const processingMode = useProjectStore((s) => s.processingMode);
   const setProcessingMode = useProjectStore((s) => s.setProcessingMode);
+  const colorTolerance = useProjectStore((s) => s.colorTolerance);
+  const setColorTolerance = useProjectStore((s) => s.setColorTolerance);
+  const offsetX = useProjectStore((s) => s.offsetX);
+  const setOffsetX = useProjectStore((s) => s.setOffsetX);
+  const offsetY = useProjectStore((s) => s.offsetY);
+  const setOffsetY = useProjectStore((s) => s.setOffsetY);
 
   const applyDifficultyChange = (lvlValue: number) => {
     const hadGrid = !!pixelGrid;
@@ -269,6 +275,91 @@ export default function ControlPanel() {
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Renk Hassasiyeti (Sadece Zor ve Uzman modlarında) */}
+      {(difficultyLevel === 3 || difficultyLevel === 4) && (
+        <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-sm font-semibold text-gray-700">
+              {t('controlPanel.colorTolerance', 'Renk Hassasiyeti')}
+            </h3>
+            <span className="text-xs font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+              {colorTolerance}%
+            </span>
+          </div>
+          <p className="text-[10px] text-gray-500 mb-3">
+            {t('controlPanel.colorToleranceHint', 'Düşük değer daha katı renk ayrımı yapar. Yüksek değer benzer renkleri daha agresif birleştirir.')}
+          </p>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            value={colorTolerance}
+            onChange={(e) => {
+              setColorTolerance(Number(e.target.value));
+              if (uploadedImage) {
+                useProjectStore.getState().triggerRegenerate();
+              }
+            }}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+          />
+        </div>
+      )}
+
+      {/* Grid Kaydırma (Offset) */}
+      <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">
+          {t('controlPanel.gridOffset', 'Grid Kaydırma (İnce Ayar)')}
+        </h3>
+        <p className="text-[10px] text-gray-500 mb-4">
+          {t('controlPanel.gridOffsetHint', 'Küçük detayları (göz, ağız vb.) yakalamak için ızgarayı hafifçe kaydırın.')}
+        </p>
+        
+        <div className="space-y-4">
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-xs font-medium text-gray-600">X Eksenini Kaydır</label>
+              <span className="text-xs font-bold text-gray-700 bg-gray-200 px-2 py-0.5 rounded-full">{offsetX}</span>
+            </div>
+            <input
+              type="range"
+              min="-5"
+              max="5"
+              step="1"
+              value={offsetX}
+              onChange={(e) => {
+                setOffsetX(Number(e.target.value));
+                if (uploadedImage) {
+                  useProjectStore.getState().triggerRegenerate();
+                }
+              }}
+              className="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
+            />
+          </div>
+
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-xs font-medium text-gray-600">Y Eksenini Kaydır</label>
+              <span className="text-xs font-bold text-gray-700 bg-gray-200 px-2 py-0.5 rounded-full">{offsetY}</span>
+            </div>
+            <input
+              type="range"
+              min="-5"
+              max="5"
+              step="1"
+              value={offsetY}
+              onChange={(e) => {
+                setOffsetY(Number(e.target.value));
+                if (uploadedImage) {
+                  useProjectStore.getState().triggerRegenerate();
+                }
+              }}
+              className="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
+            />
+          </div>
         </div>
       </div>
 

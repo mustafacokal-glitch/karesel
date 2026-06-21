@@ -22,12 +22,12 @@ self.onmessage = async (e: MessageEvent) => {
   
   try {
     if (type === 'RUN_AI_PIPELINE') {
-      const { imageDataArray, width, height, ageGroup, difficulty } = payload;
+      const { imageDataArray, width, height, ageGroup, difficulty, colorTolerance, offsetX, offsetY } = payload;
       
       // Reconstruct ImageData
       const imageData = new ImageData(new Uint8ClampedArray(imageDataArray), width, height);
       
-      const result: any = await EducationalAIPipeline.execute(imageData, ageGroup, difficulty);
+      const result: any = await EducationalAIPipeline.execute(imageData, ageGroup, difficulty, colorTolerance, offsetX, offsetY);
       
       // Zero-copy transfer optimization
       const rows = result.pixelGrid.length;
@@ -38,11 +38,11 @@ self.onmessage = async (e: MessageEvent) => {
       self.postMessage({ id, status: 'success', result: { ...result, flatBuffer, rows, cols } }, [flatBuffer]);
       
     } else if (type === 'RUN_CLASSIC_PIPELINE') {
-      const { imageDataArray, width, height, rows, cols, difficultyLevel } = payload;
+      const { imageDataArray, width, height, rows, cols, difficultyLevel, offsetX, offsetY } = payload;
       
       const imageData = new ImageData(new Uint8ClampedArray(imageDataArray), width, height);
       
-      const { pixelGrid, colorMap } = await processImageToGrid(imageData, rows, cols, difficultyLevel);
+      const { pixelGrid, colorMap } = await processImageToGrid(imageData, rows, cols, difficultyLevel, offsetX, offsetY);
       
       const enableThinning = difficultyLevel >= 4; 
       const { cleanGrid, cleanColors } = applySmartCleaners(pixelGrid, colorMap, PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE.ID, enableThinning);

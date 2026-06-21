@@ -31,7 +31,16 @@ export class EducationalPaletteOptimizer {
 
     // 3. Define the cognitive threshold (using squared distance from colorDistLAB)
     // High contrast mode requires colors to be much further apart to be considered distinct.
-    const cognitiveThreshold = config.highContrastMode ? 1200 : 400;
+    const tolerance = config.tolerance !== undefined ? config.tolerance : 50;
+    const baseThreshold = config.highContrastMode ? 1200 : 400;
+    
+    let thresholdMultiplier = 1;
+    if (tolerance < 50) {
+      thresholdMultiplier = tolerance / 50; // 0 to 1
+    } else {
+      thresholdMultiplier = 1 + ((tolerance - 50) / 50) * 2; // 1 to 3
+    }
+    const cognitiveThreshold = baseThreshold * thresholdMultiplier;
 
     // 4. Protect outlines/backgrounds
     const protectedIds = config.preserveOutlines !== false ? [1, 24] : []; // 1: White, 24: Black

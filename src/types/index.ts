@@ -64,6 +64,10 @@ export interface ProjectState {
   past: any[];
   future: any[];
   regenerateTrigger: number;
+  
+  colorTolerance: number;
+  offsetX: number;
+  offsetY: number;
 }
 
 export interface ProjectActions {
@@ -99,6 +103,9 @@ export interface ProjectActions {
   redo: () => void;
   resetGridOnly: () => void;
   reset: () => void;
+  setColorTolerance: (val: number) => void;
+  setOffsetX: (val: number) => void;
+  setOffsetY: (val: number) => void;
 }
 
 export type ProjectStore = ProjectState & ProjectActions;

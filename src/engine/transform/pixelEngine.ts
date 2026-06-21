@@ -28,7 +28,7 @@ const EMPTY_ID = 0;
  * @param {number} difficultyLevel - Zorluk seviyesi (1-4)
  * @returns {{ pixelGrid: number[][], colorMap: object }}
  */
-export async function processImageToGrid(imageData: ImageData, rows: number, cols: number, difficultyLevel = 2) {
+export async function processImageToGrid(imageData: ImageData, rows: number, cols: number, difficultyLevel = 2, offsetX = 0, offsetY = 0) {
   const { width, height, data } = imageData;
 
   // Her grid hücresine düşen kaynak piksel blok büyüklüğü
@@ -71,7 +71,9 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
       // 1. Geçiş: Piksel toplama ve ortalama renk hesaplama
       for (let y = yStart; y < yEnd; y++) {
         for (let x = xStart; x < xEnd; x++) {
-          const srcIdx = (y * width + x) * 4;
+          const safeX = Math.max(0, Math.min(width - 1, x + offsetX));
+          const safeY = Math.max(0, Math.min(height - 1, y + offsetY));
+          const srcIdx = (safeY * width + safeX) * 4;
           let alpha = data[srcIdx + 3];
           totalPixels++;
 

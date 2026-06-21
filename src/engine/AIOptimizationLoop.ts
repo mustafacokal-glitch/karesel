@@ -15,6 +15,7 @@ export interface OptimizationInput {
   ageGroup: AgeGroup;
   difficulty: Difficulty;
   targetScore?: number;
+  colorTolerance?: number;
 }
 
 export interface OptimizationState {
@@ -90,7 +91,8 @@ export class AIOptimizationLoop {
         input.ageGroup,
         {
           highContrastMode: config.highContrastMode,
-          maxColors: Math.max(baseMaxColors + config.maxColorsModifier, 2)
+          maxColors: Math.max(baseMaxColors + config.maxColorsModifier, 2),
+          tolerance: input.colorTolerance
         }
       );
 

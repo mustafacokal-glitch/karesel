@@ -40,7 +40,7 @@ function processWorkerResult(result: any) {
  * to the Priority-based WorkerPool Engine.
  */
 export class WorkerManager {
-  static async runAIPipeline(imageData: ImageData, ageGroup: any, difficulty: string): Promise<any> {
+  static async runAIPipeline(imageData: ImageData, ageGroup: any, difficulty: string, colorTolerance: number, offsetX: number = 0, offsetY: number = 0): Promise<any> {
     if (typeof window !== 'undefined' && typeof Worker !== 'undefined') {
       const buffer = imageData.data.buffer;
       const result = await workerPool.enqueue(
@@ -51,7 +51,10 @@ export class WorkerManager {
           width: imageData.width,
           height: imageData.height,
           ageGroup,
-          difficulty
+          difficulty,
+          colorTolerance,
+          offsetX,
+          offsetY
         }, 
         [buffer], 
         45000 // 45s timeout
@@ -59,11 +62,11 @@ export class WorkerManager {
       return processWorkerResult(result);
     } else {
       // Vitest / Node fallback
-      return await EducationalAIPipeline.execute(imageData, ageGroup, difficulty as any);
+      return await EducationalAIPipeline.execute(imageData, ageGroup, difficulty as any, colorTolerance, offsetX, offsetY);
     }
   }
 
-  static async runClassicPipeline(imageData: ImageData, rows: number, cols: number, difficultyLevel: number): Promise<any> {
+  static async runClassicPipeline(imageData: ImageData, rows: number, cols: number, difficultyLevel: number, offsetX: number = 0, offsetY: number = 0): Promise<any> {
     if (typeof window !== 'undefined' && typeof Worker !== 'undefined') {
       const buffer = imageData.data.buffer;
       const result = await workerPool.enqueue(
@@ -75,7 +78,9 @@ export class WorkerManager {
           height: imageData.height,
           rows,
           cols,
-          difficultyLevel
+          difficultyLevel,
+          offsetX,
+          offsetY
         }, 
         [buffer], 
         15000 // 15s timeout
@@ -83,7 +88,7 @@ export class WorkerManager {
       return processWorkerResult(result);
     } else {
       // Vitest / Node fallback
-      const { pixelGrid, colorMap } = await processImageToGrid(imageData, rows, cols, difficultyLevel);
+      const { pixelGrid, colorMap } = await processImageToGrid(imageData, rows, cols, difficultyLevel, offsetX, offsetY);
       const enableThinning = difficultyLevel >= 4; 
       const { cleanGrid, cleanColors } = applySmartCleaners(pixelGrid, colorMap, PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE.ID, enableThinning);
       return { cleanGrid, cleanColors };

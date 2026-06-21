@@ -7,6 +7,8 @@ export interface CacheKeyParams {
   ageLevel: string | number;
   colorSettings: string;
   processingMode: string;
+  offsetX?: number;
+  offsetY?: number;
 }
 
 export interface CachedResult {

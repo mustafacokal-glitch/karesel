@@ -69,6 +69,10 @@ const useProjectStore = create<ProjectStore>((set) => ({
   past: [],
   future: [],
   regenerateTrigger: 0,
+  
+  colorTolerance: 50,
+  offsetX: 0,
+  offsetY: 0,
 
   // --- Aksiyonlar ---
 
@@ -116,6 +120,10 @@ const useProjectStore = create<ProjectStore>((set) => ({
   setDownloadProgressText: (text: string | null) => set({ downloadProgressText: text }),
 
   setCanvasRef: (ref: HTMLCanvasElement | null) => set({ canvasRef: ref }),
+  
+  setColorTolerance: (val: number) => set({ colorTolerance: val }),
+  setOffsetX: (val: number) => set({ offsetX: val }),
+  setOffsetY: (val: number) => set({ offsetY: val }),
 
   // --- Öğretmen Düzenleme Modu Aksiyonları ---
   setIsEditMode: (status: boolean) => set({ isEditMode: status }),
@@ -280,6 +288,9 @@ const useProjectStore = create<ProjectStore>((set) => ({
     isSymmetryMode: false,
     past: [],
     future: [],
+    colorTolerance: 50,
+    offsetX: 0,
+    offsetY: 0,
   }),
 }));
 
