@@ -18,7 +18,7 @@ if (typeof global.ImageData === 'undefined') {
 
 describe('AIOptimizationLoop', () => {
 
-  const createFakeInput = (ageGroup: 'kindergarten' | 'grade1-2'): OptimizationInput => {
+  const createFakeInput = (ageGroup: 'kindergarten' | 'grade1'): OptimizationInput => {
     // 10x10 transparent image with some noisy dots to simulate complexity
     const data = new Uint8ClampedArray(10 * 10 * 4);
     for (let i = 0; i < data.length; i += 4) {

@@ -1,10 +1,6 @@
 import { AIOptimizationLoop, OptimizationInput } from './AIOptimizationLoop';
-import { processImageToGrid } from './transform/pixelEngine';
 import { AgeGroup, Difficulty } from './grid/types';
 import { getPaletteFromPolicy } from './color/PalettePolicy';
-import { ShapePreservationEngine } from './transform/ShapePreservationEngine';
-import { applySmartCleaners } from './grid/gridCleaners';
-import { PIPELINE_CONFIG } from '../config/pipelineConfig';
 export class EducationalAIPipeline {
   /**
    * Complete pipeline: takes the original uploaded image, finds the optimal configuration,
@@ -15,8 +11,8 @@ export class EducationalAIPipeline {
     ageGroup: AgeGroup,
     difficulty: Difficulty,
     colorTolerance: number = 50,
-    offsetX: number = 0,
-    offsetY: number = 0,
+    _offsetX: number = 0,
+    _offsetY: number = 0,
     intent: import('./grid/types').ProcessingIntent = 'educational'
   ) {
     let numericDifficulty = 2;

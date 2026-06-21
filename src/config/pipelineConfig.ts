@@ -9,6 +9,12 @@
 // No extra imports needed yet
 
 export const PIPELINE_CONFIG = {
+  // 0. Offline Mode Fallback Configurations
+  OFFLINE_MODE: {
+    ENABLE_REMOTE_BG_REMOVAL: typeof navigator !== 'undefined' ? navigator.onLine : true,
+    TIMEOUT_MS: 8000
+  },
+
   // 1. Pixel Engine (Mode-Pooling)
   PIXEL_ENGINE: {
     ALPHA_THRESHOLD: 128, // Legacy threshold

@@ -27,10 +27,10 @@ describe('EducationalPaletteOptimizer Performance', () => {
   }, { time: 500 }); // Run for at least 500ms
 
   bench('Optimize 24 base colors down to 15 (Primary)', () => {
-    EducationalPaletteOptimizer.optimizePalette(PALETTE as ColorInfo[], 'primary', { highContrastMode: false });
+    EducationalPaletteOptimizer.optimizePalette(PALETTE as ColorInfo[], 'grade3', { highContrastMode: false });
   });
 
   bench('Optimize 24 base colors with High Contrast Mode', () => {
-    EducationalPaletteOptimizer.optimizePalette(PALETTE as ColorInfo[], 'primary', { highContrastMode: true });
+    EducationalPaletteOptimizer.optimizePalette(PALETTE as ColorInfo[], 'grade3', { highContrastMode: true });
   });
 });

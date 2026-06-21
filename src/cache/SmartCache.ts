@@ -9,6 +9,7 @@ export interface CacheKeyParams {
   processingMode: string;
   offsetX?: number;
   offsetY?: number;
+  intent?: import('../types').ProcessingIntent | string;
 }
 
 export interface CachedResult {

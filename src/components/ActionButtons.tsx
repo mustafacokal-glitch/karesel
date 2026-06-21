@@ -319,10 +319,14 @@ export default function ActionButtons() {
             });
             // Başarılı arka plan temizleme sonucunu önbelleğe al
             useProjectStore.getState().setOriginalImageData(cleanData);
-          } catch (bgErr) {
+          } catch (bgErr: any) {
             console.warn('[ActionButtons] Arka plan silme basarisiz oldu, orijinal gorselle devam ediliyor:', bgErr);
             // Graceful fallback: orijinal görselle devam et
             cleanData = imageData;
+            
+            // Kullanıcıya soft uyarı göster
+            useProjectStore.getState().setWarning("Çevrimdışı moddasınız veya ağ bağlantısı yavaş. Arka plan temizleme atlandı, görsel olduğu gibi işlendi.");
+            useProjectStore.getState().setDownloadProgressText(null);
           }
         }
       } else {

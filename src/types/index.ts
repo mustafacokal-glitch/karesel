@@ -14,6 +14,10 @@ export interface AIQESReport {
   colorSimplicity: AIQESMetric;
   worksheetEffort: AIQESMetric;
   motivation: AIQESMetric;
+  originalSimilarity?: AIQESMetric;
+  educationalUsability?: AIQESMetric;
+  printability?: AIQESMetric;
+  keyFeatureRetention?: AIQESMetric;
 }
 
 export interface GridDimensions {
@@ -57,6 +61,7 @@ export interface ProjectState {
   cellSize: number;
   isProcessing: boolean;
   error: Error | string | null;
+  warning: string | null;
   downloadProgressText: string | null;
   canvasRef: HTMLCanvasElement | null;
   
@@ -92,6 +97,7 @@ export interface ProjectActions {
   setCellSize: (size: number) => void;
   setProcessing: (status: boolean) => void;
   setError: (error: Error | string | null) => void;
+  setWarning: (warning: string | null) => void;
   setDownloadProgressText: (text: string | null) => void;
   setCanvasRef: (ref: HTMLCanvasElement | null) => void;
   

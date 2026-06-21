@@ -36,6 +36,9 @@ export interface OptimizationState {
     gridWidth: number;
     gridHeight: number;
     colorCount: number;
+    blackCellRatio?: number;
+    rejectedBlackCellCount?: number;
+    fallbackColorUsageCount?: number;
   };
   gridData?: {
     pixelGrid: number[][];
@@ -284,7 +287,7 @@ export class AIOptimizationLoop {
       }
 
       // If we hit the target score, we can exit early!
-      if (report.aiqesScore >= targetScore) {
+      if (input.intent !== 'pedagogical-fidelity' && report.aiqesScore >= targetScore) {
         break;
       }
     }

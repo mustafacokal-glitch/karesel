@@ -10,7 +10,7 @@ describe('AIQESEngine', () => {
     isolation: number,
     gridSize: number,
     colorCount: number,
-    ageGroup: 'kindergarten' | 'grade1-2' | 'grade3-4'
+    ageGroup: 'kindergarten' | 'grade1' | 'grade3'
   ): AIQESInput => {
     
     const optimizedPalette: ColorInfo[] = [];
@@ -56,7 +56,7 @@ describe('AIQESEngine', () => {
 
   it('A highly complex image in an 8x8 grid triggers motivation/recognizability warnings', () => {
     // High complexity image squeezed into an 8x8 grid
-    const input = createMockInput(90, 90, 8, 10, 'grade1-2');
+    const input = createMockInput(90, 90, 8, 10, 'grade1');
     const report = AIQESEngine.generateReport(input);
 
     expect(report.recognizability.score).toBeLessThan(50);
@@ -64,7 +64,7 @@ describe('AIQESEngine', () => {
   });
 
   it('A wide image forced into a square grid penalizes shape preservation', () => {
-    const input = createMockInput(50, 90, 15, 10, 'grade1-2');
+    const input = createMockInput(50, 90, 15, 10, 'grade1');
     // Force aspect ratio mismatch
     input.originalMetrics.aspectRatio = 2.0; 
     // Grid is 15x15 (ratio 1.0)

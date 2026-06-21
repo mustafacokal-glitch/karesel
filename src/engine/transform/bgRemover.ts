@@ -1,4 +1,5 @@
 import { env, pipeline, RawImage, AutoModelForSemanticSegmentation } from '@huggingface/transformers';
+import { PIPELINE_CONFIG } from '../../config/pipelineConfig';
 
 // Custom model type mapping registration to resolve transformers.js mapping bug for RMBG-1.4:
 if (AutoModelForSemanticSegmentation && AutoModelForSemanticSegmentation.MODEL_CLASS_MAPPINGS) {
@@ -32,7 +33,22 @@ async function getSegmentator(onProgress?: (info: any) => void) {
  */
 export async function removeBackground(imageData: ImageData, onProgress?: (info: any) => void): Promise<ImageData> {
   try {
-    const segmenter = await getSegmentator(onProgress);
+    // Çevrimdışı Mod Kontrolü
+    if (!PIPELINE_CONFIG.OFFLINE_MODE.ENABLE_REMOTE_BG_REMOVAL) {
+      throw new Error('OFFLINE_MODE');
+    }
+
+    const timeoutMs = PIPELINE_CONFIG.OFFLINE_MODE.TIMEOUT_MS;
+    const segmenterPromise = getSegmentator(onProgress);
+    
+    // Timeout Koruması
+    const segmenter = await Promise.race([
+      segmenterPromise,
+      new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('TIMEOUT_ERROR')), timeoutMs)
+      )
+    ]);
+
 
     // 1. Gerekirse görseli küçült (Maksimum boyut 1024px)
     const MAX_SIZE = 1024;

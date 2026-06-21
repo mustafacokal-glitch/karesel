@@ -55,10 +55,10 @@ describe('EducationalPaletteOptimizer', () => {
       { id: 102, r: 220, g: 30, b: 30, name: 'Red2', hex: '#DC1E1E' }
     ] as ColorInfo[];
 
-    EducationalPaletteOptimizer.optimizePalette(colors, 'grade3-4', { highContrastMode: false });
+    EducationalPaletteOptimizer.optimizePalette(colors, 'grade3', { highContrastMode: false });
     // In normal grade 3-4, we allow more colors, they might stay distinct if distance > 400
     
-    const hcResult = EducationalPaletteOptimizer.optimizePalette(colors, 'grade3-4', { highContrastMode: true });
+    const hcResult = EducationalPaletteOptimizer.optimizePalette(colors, 'grade3', { highContrastMode: true });
     // In high contrast, distance threshold is 1200, so they definitely merge
     
     expect(hcResult.optimizedPalette.length).toBe(1);

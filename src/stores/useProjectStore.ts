@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { calculateGridDimensions } from '../utils/gridDimensions';
-import { ProjectStore, AIQESReport, ProcessingMode, GridDimensions, PixelGrid, ColorMap, ColorMapEntry } from '../types';
+import { ProjectStore, AIQESReport, ProcessingMode, ProcessingIntent, GridDimensions, PixelGrid, ColorMap, ColorMapEntry } from '../types';
 
 const useProjectStore = create<ProjectStore>((set) => ({
   // Pipeline Modu
@@ -57,6 +57,9 @@ const useProjectStore = create<ProjectStore>((set) => ({
 
   // Hata durumu
   error: null,
+  
+  // Uyarı durumu (çevrimdışı vb.)
+  warning: null,
 
   downloadProgressText: null,
 
@@ -121,6 +124,8 @@ const useProjectStore = create<ProjectStore>((set) => ({
   setProcessing: (status: boolean) => set({ isProcessing: status }),
 
   setError: (error: Error | string | null) => set({ error }),
+  
+  setWarning: (warning: string | null) => set({ warning }),
 
   setDownloadProgressText: (text: string | null) => set({ downloadProgressText: text }),
 

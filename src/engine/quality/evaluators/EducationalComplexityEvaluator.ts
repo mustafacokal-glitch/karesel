@@ -28,13 +28,13 @@ export class EducationalComplexityEvaluator {
         explanation = "The grid is extremely small, which might not be an engaging activity.";
         recommendations.push("Increase the grid size slightly.");
       }
-    } else if (ageGroup === 'grade1-2') {
+    } else if (ageGroup === 'grade1' || ageGroup === 'grade2') {
       if (maxDimension > 15) {
         score -= (maxDimension - 15) * 5;
         explanation = "The grid is too complex for 1st-2nd graders.";
         recommendations.push("Keep the maximum dimension under 15 squares.");
       }
-    } else if (ageGroup === 'grade3-4') {
+    } else if (ageGroup === 'grade3' || ageGroup === 'grade4') {
       if (maxDimension > 25) {
         score -= (maxDimension - 25) * 5;
         explanation = "The grid is very large and may cause fatigue even for older primary students.";

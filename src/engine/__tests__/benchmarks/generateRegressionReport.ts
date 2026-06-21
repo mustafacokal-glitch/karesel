@@ -54,8 +54,8 @@ async function runReport() {
 
   const baseline = JSON.parse(fs.readFileSync(BASELINE_FILE, 'utf-8'));
   const testCases = [
-    { name: 'simple_apple', diff: 'balanced' as Difficulty, age: 'grade1-2' as AgeGroup },
-    { name: 'complex_dog', diff: 'advanced' as Difficulty, age: 'grade3-4' as AgeGroup },
+    { name: 'simple_apple', diff: 'balanced' as Difficulty, age: 'grade1' as AgeGroup },
+    { name: 'complex_dog', diff: 'advanced' as Difficulty, age: 'grade3' as AgeGroup },
     { name: 'colorful_house', diff: 'easy' as Difficulty, age: 'kindergarten' as AgeGroup }
   ];
 

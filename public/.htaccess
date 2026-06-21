@@ -1,0 +1,7 @@
+RewriteEngine On
+RewriteBase /karesel/
+
+# Fallback for client-side routing: rewrite everything else to index.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.html [L]

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getPaletteFromPolicy, extractDominantColors } from '../PalettePolicy';
+import { getPaletteFromPolicy } from '../PalettePolicy';
 
 // Helper to create a fake ImageData with specific colors
 function createFakeImageData(width: number, height: number, colors: {r: number, g: number, b: number, a?: number}[]): ImageData {

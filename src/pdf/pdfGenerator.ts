@@ -443,8 +443,8 @@ export const generateActivityPDF = async (state: any, options: any = { paperSize
 
     // ---- Sayfa 3: AIQES Raporu (Sadece Eğitsel Yapay Zeka modundaysa) ----
     if (processingMode === 'educational_ai' && aiqesReport) {
-      doc.addPage();
-      drawAIQESPage(doc, aiqesReport, dims, state, options);
+      // doc.addPage();
+      // drawAIQESPage(doc, aiqesReport, dims, state, options);
     }
 
     // ---- PDF Blob Döndür ----

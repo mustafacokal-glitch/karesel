@@ -45,7 +45,7 @@ async function runBenchmark() {
   // Benchmark Full Pipeline
   const startPipeline = performance.now();
   for (let i = 0; i < 2; i++) {
-    await EducationalAIPipeline.execute(sourceData, 'grade3-4', 'advanced');
+    await EducationalAIPipeline.execute(sourceData, 'grade3', 'advanced');
   }
   const endPipeline = performance.now();
   console.log(`EducationalAIPipeline average time: ${((endPipeline - startPipeline) / 2).toFixed(2)} ms`);

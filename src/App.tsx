@@ -100,6 +100,31 @@ function ErrorBanner() {
   );
 }
 
+function WarningBanner() {
+  const warning = useProjectStore((s) => s.warning);
+  const setWarning = useProjectStore((s) => s.setWarning);
+
+  if (!warning) return null;
+
+  return (
+    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-4">
+      <div className="bg-orange-500 text-white rounded-2xl shadow-xl px-5 py-4 flex items-start gap-3">
+        <span className="text-2xl flex-shrink-0">⚠️</span>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm">Uyarı</p>
+          <p className="text-sm opacity-90 mt-0.5 break-words">{warning}</p>
+        </div>
+        <button
+          onClick={() => setWarning(null)}
+          className="flex-shrink-0 text-white/80 hover:text-white text-xl leading-none ml-2"
+          aria-label="Kapat"
+        >
+          ×
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   return (
@@ -147,6 +172,7 @@ export default function App() {
 
           {/* Hata Bildirimi */}
           <ErrorBanner />
+          <WarningBanner />
         </div>
     </ErrorBoundary>
   );
