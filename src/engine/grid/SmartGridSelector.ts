@@ -1,4 +1,4 @@
-import { AgeGroup, Difficulty, GridRecommendation, GridSelectionInput } from './types';
+import { GridRecommendation, GridSelectionInput } from './types';
 
 export class SmartGridSelector {
   /**

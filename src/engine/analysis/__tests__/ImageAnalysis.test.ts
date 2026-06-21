@@ -3,7 +3,7 @@ import { EdgeDensityAnalyzer } from '../EdgeDensityAnalyzer';
 import { ColorDistributionAnalyzer } from '../ColorDistributionAnalyzer';
 import { ObjectIsolationAnalyzer } from '../ObjectIsolationAnalyzer';
 import { ImageComplexityAnalyzer } from '../ImageComplexityAnalyzer';
-import { AnalysisInput } from '../types';
+
 
 describe('KARESEL Image Analysis Engine', () => {
   

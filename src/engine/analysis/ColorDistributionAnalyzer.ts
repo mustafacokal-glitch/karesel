@@ -6,7 +6,7 @@ export class ColorDistributionAnalyzer {
    * Groups RGB values into bins to estimate the number of distinctly recognizable colors.
    */
   public static analyze(input: AnalysisInput): ColorDistResult {
-    const { width, height, data } = input.imageData;
+    const { data } = input.imageData;
     
     // We quantize the 24-bit RGB space into fewer bins.
     // e.g., shift right by 5 bits reduces 0-255 down to 0-7 (8 levels per channel).

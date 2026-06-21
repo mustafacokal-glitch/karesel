@@ -55,7 +55,7 @@ describe('EducationalPaletteOptimizer', () => {
       { id: 102, r: 220, g: 30, b: 30, name: 'Red2', hex: '#DC1E1E' }
     ] as ColorInfo[];
 
-    const normalResult = EducationalPaletteOptimizer.optimizePalette(colors, 'grade3-4', { highContrastMode: false });
+    EducationalPaletteOptimizer.optimizePalette(colors, 'grade3-4', { highContrastMode: false });
     // In normal grade 3-4, we allow more colors, they might stay distinct if distance > 400
     
     const hcResult = EducationalPaletteOptimizer.optimizePalette(colors, 'grade3-4', { highContrastMode: true });

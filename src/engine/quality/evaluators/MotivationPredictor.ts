@@ -2,7 +2,7 @@ import { AIQESInput, EvaluationResult } from '../types';
 
 export class MotivationPredictor {
   public static evaluate(input: AIQESInput): EvaluationResult {
-    const { originalMetrics, optimizedPalette, gridRows, gridCols, ageGroup } = input;
+    const { originalMetrics, gridRows, gridCols } = input;
     
     // Motivation is heavily tied to the feeling of success vs confusion.
     // If edge density is very high (noisy image) and grid is small, it looks like a blurry mess.
@@ -12,7 +12,7 @@ export class MotivationPredictor {
     const recommendations: string[] = [];
     let explanation = "This worksheet hits the 'Goldilocks Zone' - challenging enough to be fun, but clear enough to guarantee success.";
 
-    const isComplex = originalMetrics.edgeDensity > 30 || originalMetrics.colorChaosScore > 50;
+    const isComplex = originalMetrics.edgeDensity > 30 || originalMetrics.colorChaos > 50;
     const isSmallGrid = Math.max(gridRows, gridCols) <= 8;
 
     if (isComplex && isSmallGrid) {

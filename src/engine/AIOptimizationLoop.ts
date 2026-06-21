@@ -1,4 +1,4 @@
-import { ImageData } from './analysis/types'; // Using global ImageData
+
 import { AgeGroup, Difficulty } from './grid/types';
 import { ColorInfo } from './color/types';
 

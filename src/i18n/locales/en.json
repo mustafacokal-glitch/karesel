@@ -1,0 +1,42 @@
+{
+  "app": {
+    "title": "Karesel Coding Studio"
+  },
+  "header": {
+    "title": "Karesel Coding Studio",
+    "subtitle": "Convert images to pixel art, generate activity worksheets.",
+    "language": "Language Selection"
+  },
+  "upload": {
+    "title": "Drag & drop an image or click",
+    "subtitle": "PNG, JPG, WebP supported",
+    "success": "✅ Image uploaded — click to change",
+    "changeImage": "Change image",
+    "uploadImage": "Upload image"
+  },
+  "controlPanel": {
+    "mode": "🤖 Production Mode",
+    "classicMode": "🎨 Classic Mode",
+    "aiMode": "🧠 Educational AI",
+    "aiHint": "* AI will automatically optimize colors and difficulty based on the child's age.",
+    "grade": "👦 Which Grade Level?",
+    "gradeSelect": "Grade Level Selection",
+    "difficulty": "🎯 Difficulty Level",
+    "orientation": "📄 Paper Orientation",
+    "orientationSelect": "Paper Orientation Selection",
+    "recommended": "Recommended",
+    "notRecommended": "Not recommended for this grade, but usable",
+    "smallCellBadge": "Small Cell",
+    "smallCellHint": "Cells might be too small.",
+    "narrowBadge": "Narrow",
+    "narrowHint": "Cells are a bit narrow.",
+    "miniLevel": "Mini",
+    "miniLevelSub": "For 1st Grade",
+    "easy": "Easy",
+    "medium": "Medium",
+    "hard": "Hard",
+    "expert": "Expert",
+    "portrait": "⬛ Portrait",
+    "landscape": "⬜ Landscape"
+  }
+}

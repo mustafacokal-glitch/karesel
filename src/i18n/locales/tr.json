@@ -1,0 +1,42 @@
+{
+  "app": {
+    "title": "Karesel Kodlama Stüdyosu"
+  },
+  "header": {
+    "title": "Karesel Kodlama Studio",
+    "subtitle": "Resimleri piksel sanatına dönüştür, etkinlik sayfaları oluştur.",
+    "language": "Dil Seçimi"
+  },
+  "upload": {
+    "title": "Görseli sürükle-bırak veya tıkla",
+    "subtitle": "PNG, JPG, WebP desteklenir",
+    "success": "✅ Görsel yüklendi — değiştirmek için tıkla",
+    "changeImage": "Görseli değiştir",
+    "uploadImage": "Görsel yükle"
+  },
+  "controlPanel": {
+    "mode": "🤖 Üretim Modu",
+    "classicMode": "🎨 Klasik Mod",
+    "aiMode": "🧠 Eğitsel Yapay Zeka",
+    "aiHint": "* Yapay zeka, çocuğun yaşına göre renk ve zorluğu otomatik optimize edecektir.",
+    "grade": "👦 Hangi Sınıfa Hazırlıyorsunuz?",
+    "gradeSelect": "Sınıf Seviyesi Seçimi",
+    "difficulty": "🎯 Zorluk Seviyesi",
+    "orientation": "📄 Kağıt Yönü",
+    "orientationSelect": "Kağıt Yönü Seçimi",
+    "recommended": "Önerilen",
+    "notRecommended": "Bu sınıf için önerilmez ama kullanılabilir",
+    "smallCellBadge": "Küçük Hücre",
+    "smallCellHint": "Hücreler çok küçük olabilir.",
+    "narrowBadge": "Dar",
+    "narrowHint": "Hücreler biraz dar.",
+    "miniLevel": "Mini",
+    "miniLevelSub": "1. Sınıf İçin",
+    "easy": "Kolay",
+    "medium": "Orta",
+    "hard": "Zor",
+    "expert": "Uzman",
+    "portrait": "⬛ Dikey",
+    "landscape": "⬜ Yatay"
+  }
+}
