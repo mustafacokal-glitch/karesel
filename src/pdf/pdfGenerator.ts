@@ -9,6 +9,10 @@
 import { jsPDF } from 'jspdf';
 import { LTRTextRenderer } from './renderers/LTRTextRenderer';
 import { getPageDimensions } from '../utils/printLayout';
+// @ts-ignore
+import robotoRegularUrl from '../../public/fonts/Roboto-Regular.ttf?url';
+// @ts-ignore
+import robotoBoldUrl from '../../public/fonts/Roboto-Bold.ttf?url';
 
 // ---------------------------------------------------------------------------
 // Yardımcı Fonksiyonlar
@@ -397,11 +401,28 @@ export const generateActivityPDF = async (state: any, options: any = { paperSize
       format: options.paperSize === 'letter' ? 'letter' : 'a4'
     });
 
-    // Roboto Türkçe destekli fontunu ekle (Dinamik import ile 1.4MB'lık dosya sadece PDF indirilirken yüklenir)
-    const { ROBOTO_REGULAR, ROBOTO_BOLD } = await import('./robotoFonts');
-    doc.addFileToVFS('Roboto-Regular.ttf', ROBOTO_REGULAR);
+    // Roboto Türkçe destekli fontunu dinamik olarak URL'den yükle (bellek tasarrufu için)
+    const fetchFontBase64 = async (url: string): Promise<string> => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Font yüklenemedi: ${url}`);
+      const buffer = await response.arrayBuffer();
+      let binary = '';
+      const bytes = new Uint8Array(buffer);
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary);
+    };
+
+    const [regularB64, boldB64] = await Promise.all([
+      fetchFontBase64(robotoRegularUrl),
+      fetchFontBase64(robotoBoldUrl)
+    ]);
+
+    doc.addFileToVFS('Roboto-Regular.ttf', regularB64);
     doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
-    doc.addFileToVFS('Roboto-Bold.ttf', ROBOTO_BOLD);
+    doc.addFileToVFS('Roboto-Bold.ttf', boldB64);
     doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
 
     const solutionData = solutionGrid && Array.isArray(solutionGrid) && solutionGrid.length > 0
