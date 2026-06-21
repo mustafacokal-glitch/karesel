@@ -1,7 +1,14 @@
+export type EdgeMode =
+  | 'silhouette-only'
+  | 'preserve-source-color'
+  | 'force-black';
+
 export interface PreservationConfig {
   medianRadius?: number;     // e.g. 1 means 3x3 kernel
   edgeThreshold?: number;    // e.g. 50
   edgeColor?: [number, number, number]; // RGB array, usually [56, 53, 54] for Karesel Black
+  edgeMode?: EdgeMode;
+  internalEdgeDarkenFactor?: number;
 }
 
 export class ShapePreservationEngine {
@@ -12,8 +19,8 @@ export class ShapePreservationEngine {
    */
   public static apply(sourceImageData: ImageData, config: PreservationConfig = {}): ImageData {
     const radius = config.medianRadius ?? 1;
-    const edgeThreshold = config.edgeThreshold ?? 50;
     const edgeColor = config.edgeColor ?? [56, 53, 54]; // Default to PALETTE Black
+    const edgeMode = config.edgeMode ?? 'silhouette-only';
 
     // We create a copy to avoid mutating the original until each step is done
     let currentData = new ImageData(
@@ -29,7 +36,9 @@ export class ShapePreservationEngine {
     currentData = this.protectSilhouette(currentData, edgeColor);
 
     // 3. Enhance internal edges
-    currentData = this.detectAndEnhanceEdges(currentData, edgeThreshold, edgeColor);
+    if (edgeMode !== 'silhouette-only') {
+      currentData = this.detectAndEnhanceEdges(currentData, config, edgeMode);
+    }
 
     return currentData;
   }
@@ -139,9 +148,12 @@ export class ShapePreservationEngine {
   /**
    * Uses Sobel operator to find structural edges and darkens them.
    */
-  private static detectAndEnhanceEdges(img: ImageData, threshold: number, edgeColor: [number, number, number]): ImageData {
+  private static detectAndEnhanceEdges(img: ImageData, config: PreservationConfig, edgeMode: EdgeMode): ImageData {
     const { width, height, data } = img;
     const outData = new Uint8ClampedArray(data);
+    const threshold = config.edgeThreshold ?? 50;
+    const edgeColor = config.edgeColor ?? [56, 53, 54];
+    const darkenFactor = config.internalEdgeDarkenFactor ?? 0.85;
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -170,9 +182,15 @@ export class ShapePreservationEngine {
         const magnitude = Math.sqrt(gx * gx + gy * gy);
 
         if (magnitude > threshold) {
-          outData[idx] = edgeColor[0];
-          outData[idx + 1] = edgeColor[1];
-          outData[idx + 2] = edgeColor[2];
+          if (edgeMode === 'force-black') {
+            outData[idx] = edgeColor[0];
+            outData[idx + 1] = edgeColor[1];
+            outData[idx + 2] = edgeColor[2];
+          } else if (edgeMode === 'preserve-source-color') {
+            outData[idx] = Math.floor(data[idx] * darkenFactor);
+            outData[idx + 1] = Math.floor(data[idx + 1] * darkenFactor);
+            outData[idx + 2] = Math.floor(data[idx + 2] * darkenFactor);
+          }
           // We don't change alpha
         }
       }

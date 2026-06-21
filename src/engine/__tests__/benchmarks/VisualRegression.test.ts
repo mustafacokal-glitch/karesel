@@ -95,12 +95,12 @@ describe('Visual Regression & Benchmark Suite', () => {
     }
   };
 
-  it('Bench: simple_apple.png (grade1-2, balanced)', async () => {
-    await runTestForImage('simple_apple', 'balanced', 'grade1-2');
+  it('Bench: simple_apple.png (grade1, balanced)', async () => {
+    await runTestForImage('simple_apple', 'balanced', 'grade1');
   });
 
-  it('Bench: complex_dog.png (grade3-4, advanced)', async () => {
-    await runTestForImage('complex_dog', 'advanced', 'grade3-4');
+  it('Bench: complex_dog.png (grade3, advanced)', async () => {
+    await runTestForImage('complex_dog', 'advanced', 'grade3');
   });
 
   it('Bench: colorful_house.png (kindergarten, easy)', async () => {

@@ -1,8 +1,7 @@
 import { AIOptimizationLoop, OptimizationInput } from './AIOptimizationLoop';
 import { processImageToGrid } from './transform/pixelEngine';
 import { AgeGroup, Difficulty } from './grid/types';
-import { ColorInfo } from './color/types';
-import { PALETTE } from './color/colorDistance';
+import { getPaletteFromPolicy } from './color/PalettePolicy';
 import { ShapePreservationEngine } from './transform/ShapePreservationEngine';
 import { applySmartCleaners } from './grid/gridCleaners';
 import { PIPELINE_CONFIG } from '../config/pipelineConfig';
@@ -17,51 +16,45 @@ export class EducationalAIPipeline {
     difficulty: Difficulty,
     colorTolerance: number = 50,
     offsetX: number = 0,
-    offsetY: number = 0
+    offsetY: number = 0,
+    intent: import('./grid/types').ProcessingIntent = 'educational'
   ) {
+    let numericDifficulty = 2;
+    if (intent === 'fidelity') {
+      const diffMap: Record<Difficulty, number> = { easy: 2, balanced: 3, advanced: 4, expert: 5 };
+      numericDifficulty = diffMap[difficulty] || 3;
+    } else {
+      const diffMap: Record<Difficulty, number> = { easy: 1, balanced: 2, advanced: 3, expert: 3 };
+      numericDifficulty = diffMap[difficulty] || 2;
+    }
+
+    const allowedPalette = getPaletteFromPolicy({
+      mode: intent,
+      difficultyLevel: numericDifficulty,
+      ageGroup
+    }, sourceImageData);
+
     // 1. Run the AI Optimization Loop to find the perfect configuration
     const input: OptimizationInput = {
       sourceImageData,
-      rawColors: PALETTE as ColorInfo[],
+      rawColors: allowedPalette,
       ageGroup,
       difficulty,
       targetScore: 85,
-      colorTolerance
+      colorTolerance,
+      intent
     };
 
     const bestState = await AIOptimizationLoop.optimize(input);
 
-    // 2. We now have the best state. We need to generate the FINAL pixel grid.
-    // First, apply the winning shape preservation configuration.
-    const finalPreservedImage = ShapePreservationEngine.apply(sourceImageData, {
-      medianRadius: bestState.config.medianRadius,
-      edgeThreshold: bestState.config.highContrastMode ? 30 : 50
-    });
-
-    // 3. Run the classic pixel conversion but with the AI's strict instructions
-    // Note: difficultyLevel controls maxColors in classic. We pass difficulty as a fallback.
-    const difficultyLevelMap: Record<Difficulty, number> = { easy: 1, balanced: 2, advanced: 3 };
-    const numericDifficulty = difficultyLevelMap[difficulty] || 2;
-    const pixelGridResult = await processImageToGrid(
-      finalPreservedImage,
-      bestState.metrics.gridHeight,
-      bestState.metrics.gridWidth,
-      numericDifficulty,
-      offsetX,
-      offsetY
-    );
-
-    const enableThinning = numericDifficulty >= 4;
-    const { cleanGrid, cleanColors } = applySmartCleaners(
-      pixelGridResult.pixelGrid, 
-      pixelGridResult.colorMap, 
-      PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE.ID, 
-      enableThinning
-    );
+    // 2. Extract final grid from the winning state
+    if (!bestState.gridData) {
+      throw new Error('AIOptimizationLoop failed to return final gridData');
+    }
 
     return {
-      pixelGrid: cleanGrid,
-      colorMap: cleanColors,
+      pixelGrid: bestState.gridData.pixelGrid,
+      colorMap: bestState.gridData.colorMap,
       aiqesReport: bestState.report,
       gridDimensions: { width: bestState.metrics.gridWidth, height: bestState.metrics.gridHeight },
       optimizationState: bestState

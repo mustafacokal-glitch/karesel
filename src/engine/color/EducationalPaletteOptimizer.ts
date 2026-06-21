@@ -19,8 +19,10 @@ export class EducationalPaletteOptimizer {
     // 1. Determine max colors
     let maxColors = config.maxColors || 15;
     if (ageGroup === 'kindergarten') maxColors = Math.min(maxColors, 5);
-    else if (ageGroup === 'grade1-2') maxColors = Math.min(maxColors, 10);
-    else if (ageGroup === 'grade3-4' || ageGroup === 'primary') maxColors = Math.min(maxColors, 15);
+    else if (ageGroup === 'grade1') maxColors = Math.min(maxColors, 8);
+    else if (ageGroup === 'grade2') maxColors = Math.min(maxColors, 10);
+    else if (ageGroup === 'grade3') maxColors = Math.min(maxColors, 12);
+    else if (ageGroup === 'grade4') maxColors = Math.min(maxColors, 15);
 
     // 2. Initialize working set and map
     let currentColors = [...originalColors];

@@ -8,6 +8,18 @@ export interface AIQESInput {
   gridRows: number;
   gridCols: number;
   ageGroup: AgeGroup;
+  intent?: import('../grid/types').ProcessingIntent;
+  keyFeatureStats?: {
+    originalCount: number;
+    preservedCount: number;
+    avgConfidence: number;
+    locationMatch: number;
+    colorMatch: number;
+    eyeScore?: number;
+    noseScore?: number;
+    mouthScore?: number;
+    whiskerScore?: number;
+  };
 }
 
 export interface EvaluationResult {
@@ -24,4 +36,8 @@ export interface AIQESReport {
   colorSimplicity: EvaluationResult;
   worksheetEffort: EvaluationResult;
   motivation: EvaluationResult;
+  originalSimilarity?: EvaluationResult;
+  educationalUsability?: EvaluationResult;
+  printability?: EvaluationResult;
+  keyFeatureRetention?: EvaluationResult;
 }

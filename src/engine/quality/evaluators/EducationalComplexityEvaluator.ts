@@ -2,8 +2,16 @@ import { AIQESInput, EvaluationResult } from '../types';
 
 export class EducationalComplexityEvaluator {
   public static evaluate(input: AIQESInput): EvaluationResult {
-    const { gridRows, gridCols, ageGroup } = input;
+    const { gridRows, gridCols, ageGroup, intent } = input;
     const maxDimension = Math.max(gridRows, gridCols);
+    
+    if (intent === 'fidelity') {
+      return {
+        score: 100,
+        explanation: "Fidelity mode bypasses educational grid complexity limits to preserve original detail.",
+        recommendations: []
+      };
+    }
     
     let score = 100;
     const recommendations: string[] = [];

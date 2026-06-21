@@ -1,4 +1,4 @@
-export type AgeGroup = 'kindergarten' | 'grade1-2' | 'grade3-4' | 'primary';
+export type AgeGroup = 'kindergarten' | 'grade1' | 'grade2' | 'grade3' | 'grade4';
 
 export interface ColorConfig {
   highContrastMode: boolean;

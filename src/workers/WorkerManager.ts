@@ -41,7 +41,7 @@ function processWorkerResult(result: any) {
  * to the Priority-based WorkerPool Engine.
  */
 export class WorkerManager {
-  static async runAIPipeline(imageData: ImageData, ageGroup: any, difficulty: string, colorTolerance: number, offsetX: number = 0, offsetY: number = 0): Promise<any> {
+  static async runAIPipeline(imageData: ImageData, ageGroup: any, difficulty: string, colorTolerance: number, offsetX: number = 0, offsetY: number = 0, intent: string = 'educational'): Promise<any> {
     if (typeof window !== 'undefined' && typeof Worker !== 'undefined') {
       const result = await workerPool.enqueue(
         'RUN_AI_PIPELINE', 
@@ -54,7 +54,8 @@ export class WorkerManager {
           difficulty,
           colorTolerance,
           offsetX,
-          offsetY
+          offsetY,
+          intent
         }, 
         [], 
         45000 // 45s timeout
@@ -62,7 +63,7 @@ export class WorkerManager {
       return processWorkerResult(result);
     } else {
       // Vitest / Node fallback
-      return await EducationalAIPipeline.execute(imageData, ageGroup, difficulty as any, colorTolerance, offsetX, offsetY);
+      return await EducationalAIPipeline.execute(imageData, ageGroup, difficulty as any, colorTolerance, offsetX, offsetY, intent as any);
     }
   }
 

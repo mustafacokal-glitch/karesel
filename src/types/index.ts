@@ -36,8 +36,11 @@ export type ColorMap = Record<string | number, ColorMapEntry>;
 
 export type PixelGrid = (number | null)[][];
 
+export type ProcessingIntent = 'educational' | 'fidelity' | 'pedagogical-fidelity';
+
 export interface ProjectState {
   processingMode: ProcessingMode;
+  intent: ProcessingIntent;
   aiqesReport: AIQESReport | null;
   uploadedImage: string | null;
   imageAspectRatio: number | null;
@@ -72,6 +75,7 @@ export interface ProjectState {
 
 export interface ProjectActions {
   setProcessingMode: (mode: ProcessingMode) => void;
+  setIntent: (intent: ProcessingIntent) => void;
   setAiqesReport: (report: AIQESReport | null) => void;
   setUploadedImage: (image: string | null) => void;
   setImageAspectRatio: (ratio: number | null) => void;

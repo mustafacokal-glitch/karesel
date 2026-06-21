@@ -278,7 +278,12 @@ export function safeBlockThinning(grid: number[][], outlineId: number): number[]
  * @param {object} _colors - colorMap (yalnızca API uyumu, korunan ID'ler sabit)
  * @returns {number[][]} Temizlenmiş grid
  */
-export function cleanIsolatedPixels(grid: number[][], _colors: Record<number, any>): number[][] {
+export function cleanIsolatedPixels(
+  grid: number[][], 
+  _colors: Record<number, any>,
+  protectedCells?: ('hard'|'soft'|'none')[][],
+  featureConfidenceGrid?: number[][]
+): number[][] {
   try {
     const rows = grid.length;
     const cols = grid[0].length;
@@ -292,6 +297,14 @@ export function cleanIsolatedPixels(grid: number[][], _colors: Record<number, an
         const current = result[r][c];
         if (current === 0) continue;
         if (PROTECTED.has(current)) continue;
+
+        // Protection check
+        const protection = protectedCells ? protectedCells[r][c] : 'none';
+        if (protection === 'hard') continue; // Asla silme
+        if (protection === 'soft') {
+          const conf = featureConfidenceGrid ? featureConfidenceGrid[r][c] : 1.0;
+          if (conf >= 0.10) continue; // Yüksek güvenliyse silme
+        }
 
         // 8 komşuda kaç tane aynı renkten var?
         let sameCount = 0;
@@ -360,9 +373,13 @@ export function cleanIsolatedPixels(grid: number[][], _colors: Record<number, an
  * doldurur.
  *
  * @param {number[][]} grid - 2D grid
+ * @param {Array} protectedCells - Hücre koruma matrisi
  * @returns {number[][]} Delikleri doldurulmuş grid
  */
-export function fillHoles(grid: number[][]): number[][] {
+export function fillHoles(
+  grid: number[][],
+  protectedCells?: ('hard'|'soft'|'none')[][]
+): number[][] {
   try {
     const rows = grid.length;
     const cols = grid[0].length;
@@ -371,6 +388,9 @@ export function fillHoles(grid: number[][]): number[][] {
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         if (result[r][c] !== 0) continue;
+        
+        // Protection check for holes
+        if (protectedCells && protectedCells[r][c] === 'hard') continue;
 
         // 8 komşudaki renk frekansını hesapla
         const freq = new Map();
@@ -648,7 +668,7 @@ export function smoothJaggedEdges(grid: number[][]): number[][] {
  * resmin asıl figürüne ait olmayan hedef renkli arka planları 
  * tespit edip Boş (0) yapar.
  */
-export function removeGridBackground(grid: number[][], targetColorId = 1): number[][] {
+export function removeGridBackground(grid: number[][], targetColorId = 1, foregroundCoverageGrid?: number[][], threshold = 0.30): number[][] {
     const rows = grid.length;
     const cols = grid[0].length;
     const result = grid.map(row => [...row]);
@@ -660,7 +680,7 @@ export function removeGridBackground(grid: number[][], targetColorId = 1): numbe
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             if (r === 0 || r === rows - 1 || c === 0 || c === cols - 1) {
-                if (result[r][c] === 0 || result[r][c] === targetColorId) {
+                if (result[r][c] === 0 || (result[r][c] === targetColorId && (!foregroundCoverageGrid || foregroundCoverageGrid[r][c] < threshold))) {
                     queue.push([r, c]);
                     visited[r][c] = true;
                     if (result[r][c] === targetColorId) result[r][c] = 0;
@@ -679,8 +699,8 @@ export function removeGridBackground(grid: number[][], targetColorId = 1): numbe
             const nc = c + dc;
             
             if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !visited[nr][nc]) {
-                // BFS sadece Boş (0) veya Beyaz (1) alanlara yayılabilir
-                if (result[nr][nc] === 0 || result[nr][nc] === targetColorId) {
+                // BFS sadece Boş (0) veya Düşük Kapsamlı Hedef Renklere (1) yayılabilir
+                if (result[nr][nc] === 0 || (result[nr][nc] === targetColorId && (!foregroundCoverageGrid || foregroundCoverageGrid[nr][nc] < threshold))) {
                     visited[nr][nc] = true;
                     if (result[nr][nc] === targetColorId) result[nr][nc] = 0;
                     queue.push([nr, nc]);
@@ -714,19 +734,28 @@ export function removeGridBackground(grid: number[][], targetColorId = 1): numbe
  * @param {boolean}    [enableThinning=false] - İskeletleştirme (thinning) yapılsın mı?
  * @returns {{ cleanGrid: number[][], cleanColors: object }}
  */
-export function applySmartCleaners(grid: number[][], colors: Record<number, any>, outlineId: number, enableThinning = false) {
+export function applySmartCleaners(
+  grid: number[][], 
+  colors: Record<number, any>, 
+  outlineId: number, 
+  enableThinning = false, 
+  foregroundCoverageGrid?: number[][], 
+  foregroundProtectionThreshold = 0.30,
+  protectedCells?: ('hard'|'soft'|'none')[][],
+  featureConfidenceGrid?: number[][]
+) {
   try {
     let cleanGrid = grid.map(row => [...row]);
     let cleanColors = { ...colors };
 
     // 1. İzole piksel temizliği
-    cleanGrid = cleanIsolatedPixels(cleanGrid, cleanColors);
+    cleanGrid = cleanIsolatedPixels(cleanGrid, cleanColors, protectedCells, featureConfidenceGrid);
 
     // 2. Delik doldurma
-    cleanGrid = fillHoles(cleanGrid);
+    cleanGrid = fillHoles(cleanGrid, protectedCells);
 
     // 3. İkinci geçiş izole piksel temizliği
-    cleanGrid = cleanIsolatedPixels(cleanGrid, cleanColors);
+    cleanGrid = cleanIsolatedPixels(cleanGrid, cleanColors, protectedCells, featureConfidenceGrid);
 
     // 4. Kontur sürekliliği düzeltme
     cleanGrid = fixLineContinuity(cleanGrid);
@@ -736,7 +765,7 @@ export function applySmartCleaners(grid: number[][], colors: Record<number, any>
       cleanGrid = zhangSuenThinning(cleanGrid, outlineId);
       // İnceltme algoritması, keskin (V şekilli) iç köşelerde arka plan (0) boşlukları yaratabilir.
       // Bu nedenle inceltme sonrası oluşan bu beyaz delikleri (0) tekrar dolduruyoruz.
-      cleanGrid = fillHoles(cleanGrid);
+      cleanGrid = fillHoles(cleanGrid, protectedCells);
     }
     
     // 6. Çapraz Merdiven Yumuşatma (Anti-aliasing etkisi)
@@ -746,7 +775,7 @@ export function applySmartCleaners(grid: number[][], colors: Record<number, any>
     cleanColors = differentiateDuplicateColorNames(cleanColors);
 
     // 8. Sihirli Değnek ile arka plan beyazlarını kesin olarak yok et
-    cleanGrid = removeGridBackground(cleanGrid);
+    cleanGrid = removeGridBackground(cleanGrid, 1, foregroundCoverageGrid, foregroundProtectionThreshold);
 
     return { cleanGrid, cleanColors };
   } catch (err) {

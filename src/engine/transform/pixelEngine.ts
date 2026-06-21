@@ -8,6 +8,7 @@
 
 import { PIPELINE_CONFIG } from '../../config/pipelineConfig';
 import { PALETTE, PALETTE_LAB, rgb2lab, rgb2labFast, colorDistLABFlat, getPaletteForDifficulty } from '../color/colorDistance';
+import { FeatureMask, KeyFeature } from './KeyFeaturePreservationEngine';
 
 // Siyah renk ID'si (kontur kuralı için)
 const BLACK_ID = PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE.ID;
@@ -28,7 +29,15 @@ const EMPTY_ID = 0;
  * @param {number} difficultyLevel - Zorluk seviyesi (1-4)
  * @returns {{ pixelGrid: number[][], colorMap: object }}
  */
-export async function processImageToGrid(imageData: ImageData, rows: number, cols: number, difficultyLevel = 2, offsetX = 0, offsetY = 0) {
+export async function processImageToGrid(
+  imageData: ImageData, 
+  rows: number, 
+  cols: number, 
+  difficultyLevel = 2, 
+  offsetX = 0, 
+  offsetY = 0,
+  options?: { allowedPalette?: any[], featureMask?: FeatureMask, metrics?: any }
+) {
   const { width, height, data } = imageData;
 
   // Her grid hücresine düşen kaynak piksel blok büyüklüğü
@@ -37,8 +46,28 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
 
   const pixelGrid: number[][] = [];
   const blackRatioGrid: number[][] = [];
+  const foregroundCoverageGrid: number[][] = [];
+  
+  // New Feature Grids
+  const featureCoverageGrid: number[][] = [];
+  const featureTypeGrid: string[][] = [];
+  const featureConfidenceGrid: number[][] = [];
+  const sourceBlackCoverageGrid: number[][] = [];
+  const protectedCells: ('hard'|'soft'|'none')[][] = [];
+
   const usedColorIds = new Set<number>();
-  const allowedPalette = getPaletteForDifficulty(difficultyLevel);
+  const allowedPalette = options?.allowedPalette || getPaletteForDifficulty(difficultyLevel);
+
+  // Cache LAB for the allowed palette to prevent redundant calculation inside loops
+  const localLabCache = new Map<number, [number, number, number]>();
+  for (const p of allowedPalette) {
+    const cached = PALETTE_LAB.get(p.id);
+    if (cached) {
+      localLabCache.set(p.id, cached);
+    } else {
+      localLabCache.set(p.id, rgb2lab(p.r, p.g, p.b));
+    }
+  }
 
   // OPTIMIZATION: Pre-allocate typed arrays to entirely prevent GC object creation inside tight loops
   const maxBlockSize = Math.ceil(blockW) * Math.ceil(blockH) + 10;
@@ -47,6 +76,7 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
   const blockB = new Uint8Array(maxBlockSize);
   const blockX = new Uint16Array(maxBlockSize);
   const blockY = new Uint16Array(maxBlockSize);
+  const blockCoverage = new Float32Array(maxBlockSize);
 
   // Buffer for fast LAB conversions
   const sharedLAB = new Float64Array(3);
@@ -63,6 +93,7 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
 
     const gridRow = [];
     const blackRatioRow = [];
+    const fgCoverageRow = [];
 
     for (let col = 0; col < cols; col++) {
       const xStart = Math.floor(col * blockW);
@@ -73,6 +104,11 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
       let sumR = 0, sumG = 0, sumB = 0;
       let blockPixelCount = 0;
       let totalPixels = 0;
+      let coverageSum = 0;
+      let validCoverageSum = 0;
+      
+      let sourceBlackPixelCount = 0;
+      const featureIdCounts = new Map<number, number>();
 
       // 1. Geçiş: Piksel toplama ve ortalama renk hesaplama
       for (let y = yStart; y < yEnd; y++) {
@@ -82,6 +118,7 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
           const srcIdx = (safeY * width + safeX) * 4;
           let alpha = data[srcIdx + 3];
           totalPixels++;
+          coverageSum += (alpha / 255);
 
           const r = data[srcIdx];
           const g = data[srcIdx + 1];
@@ -93,7 +130,8 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
             alpha = 0;
           }
 
-          if (alpha < PIPELINE_CONFIG.PIXEL_ENGINE.ALPHA_THRESHOLD) continue;
+          const coverage = alpha / 255;
+          if (coverage < PIPELINE_CONFIG.PIXEL_ENGINE.MIN_ALPHA_COVERAGE) continue;
 
           // Push to flat pre-allocated arrays instead of allocating {r,g,b} objects
           blockR[blockPixelCount] = r;
@@ -101,24 +139,49 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
           blockB[blockPixelCount] = b;
           blockX[blockPixelCount] = x;
           blockY[blockPixelCount] = y;
+          blockCoverage[blockPixelCount] = coverage;
           blockPixelCount++;
 
-          sumR += r;
-          sumG += g;
-          sumB += b;
+          sumR += r * coverage;
+          sumG += g * coverage;
+          sumB += b * coverage;
+          validCoverageSum += coverage;
+
+          // Source Black Detection for Stripe Control
+          if (r < 60 && g < 60 && b < 60) {
+            sourceBlackPixelCount++;
+          }
+
+          // Feature Tracking
+          if (options?.featureMask) {
+            const fIdx = safeY * width + safeX;
+            const fId = options.featureMask.data[fIdx];
+            if (fId > 0) {
+              featureIdCounts.set(fId, (featureIdCounts.get(fId) || 0) + 1);
+            }
+          }
         }
       }
+
+      const fgCoverage = totalPixels > 0 ? (coverageSum / totalPixels) : 0;
+      const sourceBlackCoverage = blockPixelCount > 0 ? (sourceBlackPixelCount / blockPixelCount) : 0;
 
       // 2. FİLTRE: Hücrenin %10'undan azı doluysa veya hiç piksel yoksa boş say
       if (blockPixelCount < (totalPixels * PIPELINE_CONFIG.PIXEL_ENGINE.MIN_FILL_RATIO) || blockPixelCount === 0) {
         gridRow.push(EMPTY_ID);
         blackRatioRow.push(0);
+        fgCoverageRow.push(fgCoverage);
+        featureCoverageGrid[row] = featureCoverageGrid[row] || []; featureCoverageGrid[row].push(0);
+        featureTypeGrid[row] = featureTypeGrid[row] || []; featureTypeGrid[row].push('none');
+        featureConfidenceGrid[row] = featureConfidenceGrid[row] || []; featureConfidenceGrid[row].push(0);
+        sourceBlackCoverageGrid[row] = sourceBlackCoverageGrid[row] || []; sourceBlackCoverageGrid[row].push(sourceBlackCoverage);
+        protectedCells[row] = protectedCells[row] || []; protectedCells[row].push('none');
         continue;
       }
 
-      const avgR = sumR / blockPixelCount;
-      const avgG = sumG / blockPixelCount;
-      const avgB = sumB / blockPixelCount;
+      const avgR = validCoverageSum > 0 ? sumR / validCoverageSum : 0;
+      const avgG = validCoverageSum > 0 ? sumG / validCoverageSum : 0;
+      const avgB = validCoverageSum > 0 ? sumB / validCoverageSum : 0;
       const [avgL, avgA, avgB_] = rgb2lab(avgR, avgG, avgB);
 
       const cellCenterX = (xStart + xEnd) / 2;
@@ -143,7 +206,7 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
 
         for (let j = 0; j < allowedPalette.length; j++) {
           const palId = allowedPalette[j].id;
-          const lab = PALETTE_LAB.get(palId);
+          const lab = localLabCache.get(palId);
           if (!lab) continue;
           const dist = colorDistLABFlat(pL, pA, pB, lab[0], lab[1], lab[2], 1.0);
           if (dist < minDist) {
@@ -157,6 +220,10 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
         }
 
         let weight = 1.0;
+
+        if (PIPELINE_CONFIG.PIXEL_ENGINE.USE_ALPHA_WEIGHTED_POOLING) {
+          weight *= blockCoverage[i];
+        }
 
         const ndx = (blockX[i] - cellCenterX) / halfW;
         const ndy = (blockY[i] - cellCenterY) / halfH;
@@ -178,17 +245,135 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
         freqMap.set(paletteId, (freqMap.get(paletteId) || 0) + weight);
       }
 
-      // Kontur Kuralı
+      // Feature Evaluation
+      let dominantFeature: KeyFeature | null = null;
+      let featureCoverage = 0;
+      
+      if (options?.featureMask && featureIdCounts.size > 0) {
+        let maxFeatureCount = 0;
+        let maxFeatureId = 0;
+        for (const [fId, count] of featureIdCounts) {
+          if (count > maxFeatureCount) {
+            maxFeatureCount = count;
+            maxFeatureId = fId;
+          }
+        }
+        if (maxFeatureId > 0) {
+          dominantFeature = options.featureMask.features.get(maxFeatureId) || null;
+          featureCoverage = maxFeatureCount / blockPixelCount;
+        }
+      }
+
+      let overrideColorId = EMPTY_ID;
+      let cellProtection: 'hard'|'soft'|'none' = 'none';
+      let cellFeatureType = 'none';
+      let cellFeatureConfidence = 0;
+
+      // Apply Feature Overrides based on thresholds
+      if (dominantFeature) {
+        cellFeatureType = dominantFeature.type;
+        cellProtection = dominantFeature.protection;
+        cellFeatureConfidence = featureCoverage;
+
+        // Find nearest palette ID for the feature's color
+        let fDist = Infinity;
+        let fId = 1;
+        const [fL, fA, fB] = rgb2lab(dominantFeature.color[0], dominantFeature.color[1], dominantFeature.color[2]);
+        for (const p of allowedPalette) {
+          const lab = localLabCache.get(p.id)!;
+          const d = colorDistLABFlat(fL, fA, fB, lab[0], lab[1], lab[2], 1.0);
+          if (d < fDist) { fDist = d; fId = p.id; }
+        }
+
+        const THRESHOLDS: Record<string, number> = {
+          'eye': 0.02, 'nose': 0.04, 'mouth': 0.015, 'whisker': 0.01, 'stripe': 0.05, 'inner-ear': 0.04
+        };
+        const t = THRESHOLDS[dominantFeature.type] || 0.05;
+
+        if (featureCoverage >= t) {
+          if (dominantFeature.type === 'eye' || dominantFeature.type === 'nose') {
+            overrideColorId = BLACK_ID;
+            cellProtection = 'hard';
+          } else if (dominantFeature.type === 'mouth' || dominantFeature.type === 'whisker' || dominantFeature.type === 'inner-ear') {
+            overrideColorId = fId;
+          }
+        }
+      }
+
+      // Kontur Kuralı / Mode
       let modeId = EMPTY_ID;
+      let secondaryId = EMPTY_ID; // For fallback
       if (blackCount > blockPixelCount * PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE.THRESHOLD_RATIO) {
         modeId = BLACK_ID;
       } else {
         // En çok tekrar eden (mode) rengi bul
         let maxFreq = 0;
+        let secondFreq = 0;
         for (const [paletteId, freq] of freqMap) {
           if (freq > maxFreq) {
+            secondFreq = maxFreq;
+            secondaryId = modeId;
             maxFreq = freq;
             modeId = paletteId;
+          } else if (freq > secondFreq) {
+            secondFreq = freq;
+            secondaryId = paletteId;
+          }
+        }
+      }
+
+      // Final Override
+      if (overrideColorId !== EMPTY_ID) {
+        modeId = overrideColorId;
+      } else {
+        // Stripe Control (Bounded Black Expansion)
+        if (modeId === BLACK_ID) {
+          let rejectBlack = false;
+          if (sourceBlackCoverage < 0.10) {
+            rejectBlack = true;
+          } else if (sourceBlackCoverage < 0.25) {
+            if (dominantFeature?.type !== 'stripe' && dominantFeature?.type !== 'outline' && dominantFeature?.type !== 'eye' && dominantFeature?.type !== 'nose') {
+              rejectBlack = true;
+            }
+          }
+
+          if (rejectBlack) {
+            let fallbackId = EMPTY_ID;
+            
+            // 1. Source alpha-weighted average mapped to palette
+            let bestAvgDist = Infinity;
+            for (const p of allowedPalette) {
+              if (p.id === BLACK_ID) continue;
+              if (p.id === 1 && fgCoverage >= 0.5) continue; // 1 = White/Background. Do not fallback to background if foreground is dense
+              const lab = localLabCache.get(p.id)!;
+              const d = colorDistLABFlat(avgL, avgA, avgB_, lab[0], lab[1], lab[2], 1.0);
+              if (d < bestAvgDist) {
+                bestAvgDist = d;
+                fallbackId = p.id;
+              }
+            }
+            
+            // 2. 2nd most dominant non-black cell color
+            if (fallbackId === EMPTY_ID || bestAvgDist > 40) {
+              if (secondaryId !== EMPTY_ID && secondaryId !== BLACK_ID) {
+                fallbackId = secondaryId;
+              }
+            }
+
+            // 3. (Optional) Neighborhood or object fallback could be implemented via a second pass,
+            // but for now, if fallback is still empty, revert to EMPTY_ID.
+            modeId = fallbackId !== EMPTY_ID ? fallbackId : EMPTY_ID;
+            
+            if (options) {
+              options.metrics = options.metrics || {};
+              options.metrics.rejectedBlackCells = (options.metrics.rejectedBlackCells || 0) + 1;
+              options.metrics.fallbackColorUsage = (options.metrics.fallbackColorUsage || 0) + 1;
+            }
+          } else {
+            if (options) {
+              options.metrics = options.metrics || {};
+              options.metrics.blackCells = (options.metrics.blackCells || 0) + 1;
+            }
           }
         }
       }
@@ -197,16 +382,30 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
       if (modeId === EMPTY_ID) {
         gridRow.push(EMPTY_ID);
         blackRatioRow.push(blockPixelCount > 0 ? blackCount / blockPixelCount : 0);
+        fgCoverageRow.push(fgCoverage);
+        featureCoverageGrid[row] = featureCoverageGrid[row] || []; featureCoverageGrid[row].push(0);
+        featureTypeGrid[row] = featureTypeGrid[row] || []; featureTypeGrid[row].push('none');
+        featureConfidenceGrid[row] = featureConfidenceGrid[row] || []; featureConfidenceGrid[row].push(0);
+        sourceBlackCoverageGrid[row] = sourceBlackCoverageGrid[row] || []; sourceBlackCoverageGrid[row].push(sourceBlackCoverage);
+        protectedCells[row] = protectedCells[row] || []; protectedCells[row].push('none');
         continue;
       }
 
       gridRow.push(modeId);
       blackRatioRow.push(blockPixelCount > 0 ? blackCount / blockPixelCount : 0);
+      fgCoverageRow.push(fgCoverage);
+      featureCoverageGrid[row] = featureCoverageGrid[row] || []; featureCoverageGrid[row].push(featureCoverage);
+      featureTypeGrid[row] = featureTypeGrid[row] || []; featureTypeGrid[row].push(cellFeatureType);
+      featureConfidenceGrid[row] = featureConfidenceGrid[row] || []; featureConfidenceGrid[row].push(cellFeatureConfidence);
+      sourceBlackCoverageGrid[row] = sourceBlackCoverageGrid[row] || []; sourceBlackCoverageGrid[row].push(sourceBlackCoverage);
+      protectedCells[row] = protectedCells[row] || []; protectedCells[row].push(cellProtection);
+
       usedColorIds.add(modeId);
     }
 
     pixelGrid.push(gridRow);
     blackRatioGrid.push(blackRatioRow);
+    foregroundCoverageGrid.push(fgCoverageRow);
   }
 
   // 3. Geçiş: Edge-Aware Downscaling (Senkron Güncelleme)
@@ -246,11 +445,20 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
   // colorMap
   const colorMap: Record<number, any> = {};
   for (const paletteId of usedColorIds) {
-    const paletteColor = PALETTE.find(p => p.id === paletteId);
+    const paletteColor = allowedPalette.find((p: any) => p.id === paletteId) || PALETTE.find(p => p.id === paletteId);
     if (paletteColor) {
       colorMap[paletteId] = { ...paletteColor };
     }
   }
 
-  return { pixelGrid, colorMap };
+  return { 
+    pixelGrid, 
+    colorMap, 
+    foregroundCoverageGrid,
+    featureCoverageGrid,
+    featureTypeGrid,
+    featureConfidenceGrid,
+    sourceBlackCoverageGrid,
+    protectedCells
+  };
 }

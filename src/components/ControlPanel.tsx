@@ -44,6 +44,8 @@ export default function ControlPanel() {
   const setOffsetX = useProjectStore((s) => s.setOffsetX);
   const offsetY = useProjectStore((s) => s.offsetY);
   const setOffsetY = useProjectStore((s) => s.setOffsetY);
+  const intent = useProjectStore((s) => s.intent);
+  const setIntent = useProjectStore((s) => s.setIntent);
 
   const applyDifficultyChange = (lvlValue: number) => {
     const hadGrid = !!pixelGrid;
@@ -83,6 +85,10 @@ export default function ControlPanel() {
     return { isRecommended: true };
   };
 
+  const isClassic = processingMode === 'classic';
+  const isFidelity = processingMode === 'educational_ai' && intent === 'fidelity';
+  const isWorksheet = processingMode === 'educational_ai' && (intent === 'educational' || intent === 'pedagogical-fidelity');
+
   return (
     <div className="bg-white rounded-2xl shadow-md p-5 space-y-6">
       {/* Mod Seçici */}
@@ -113,40 +119,120 @@ export default function ControlPanel() {
           </button>
         </div>
         {processingMode === 'educational_ai' && (
-          <p className="text-xs text-purple-600 mt-2 font-medium">
-            {t('controlPanel.aiHint')}
-          </p>
+          <div className="mt-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3" id="intent-group-label">
+              Ne tür çalışma hazırlamak istiyorsunuz?
+            </h3>
+            <div 
+              className="flex flex-col gap-2" 
+              role="radiogroup" 
+              aria-labelledby="intent-group-label"
+              onKeyDown={(e) => {
+                const options: import('../engine/grid/types').ProcessingIntent[] = ['educational', 'pedagogical-fidelity', 'fidelity'];
+                const currentIndex = options.indexOf(intent);
+                let nextIndex = currentIndex;
+                if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                  e.preventDefault();
+                  nextIndex = (currentIndex + 1) % options.length;
+                } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                  e.preventDefault();
+                  nextIndex = (currentIndex - 1 + options.length) % options.length;
+                }
+                if (nextIndex !== currentIndex) {
+                  setIntent(options[nextIndex]);
+                }
+              }}
+            >
+              <button
+                type="button"
+                role="radio"
+                aria-checked={intent === 'educational'}
+                tabIndex={intent === 'educational' ? 0 : -1}
+                onClick={() => setIntent('educational')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIntent('educational'); } }}
+                className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all border-2 ${
+                  intent === 'educational'
+                    ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-md border-transparent'
+                    : 'bg-white text-gray-800 border-gray-200 hover:border-purple-300'
+                }`}
+              >
+                <div className="font-bold">🎒 Kolay Çalışma Kağıdı</div>
+                <div className={`text-xs mt-1 font-normal ${intent === 'educational' ? 'text-purple-100' : 'text-gray-500'}`}>Sınıf seviyesine uygun, sadeleştirilmiş renkler ve basit ızgara.</div>
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={intent === 'pedagogical-fidelity'}
+                tabIndex={intent === 'pedagogical-fidelity' ? 0 : -1}
+                onClick={() => setIntent('pedagogical-fidelity')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIntent('pedagogical-fidelity'); } }}
+                className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all border-2 ${
+                  intent === 'pedagogical-fidelity'
+                    ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-md border-transparent'
+                    : 'bg-white text-gray-800 border-gray-200 hover:border-purple-300'
+                }`}
+              >
+                <div className="font-bold">🖼️ Orijinale Benzer Çalışma Kağıdı</div>
+                <div className={`text-xs mt-1 font-normal ${intent === 'pedagogical-fidelity' ? 'text-purple-100' : 'text-gray-500'}`}>Orijinal görsele daha sadık, ancak yine de çocuklar için çözülebilir seviyede.</div>
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={intent === 'fidelity'}
+                tabIndex={intent === 'fidelity' ? 0 : -1}
+                onClick={() => setIntent('fidelity')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIntent('fidelity'); } }}
+                className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all border-2 ${
+                  intent === 'fidelity'
+                    ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-md border-transparent'
+                    : 'bg-white text-gray-800 border-gray-200 hover:border-purple-300'
+                }`}
+              >
+                <div className="font-bold">✨ Yüksek Detaylı Piksel Art</div>
+                <div className={`text-xs mt-1 font-normal ${intent === 'fidelity' ? 'text-purple-100' : 'text-gray-500'}`}>Orijinal resimle birebir aynı renkler ve detaylar. Zorlayıcı olabilir.</div>
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
       {/* Sınıf Seviyesi */}
-      <div>
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">
-          {t('controlPanel.grade')}
-        </h3>
-        <div className="flex gap-2" role="group" aria-label="{t('controlPanel.gradeSelect')}">
-          {grades.map((grade) => (
-            <button
-              key={grade}
-              onClick={() => handleGradeClick(grade)}
-              aria-pressed={gradeLevel === grade}
-              className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-all border-2 ${
-                gradeLevel === grade
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-              }`}
-            >
-              {grade}. Sınıf
-            </button>
-          ))}
+      {isWorksheet && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">
+            Sınıf Seviyesi
+          </h3>
+          <div className="flex gap-2" role="group" aria-label="{t('controlPanel.gradeSelect')}">
+            {grades.map((grade) => (
+              <button
+                key={grade}
+                onClick={() => handleGradeClick(grade)}
+                aria-pressed={gradeLevel === grade}
+                className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-all border-2 ${
+                  gradeLevel === grade
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                }`}
+              >
+                {grade}. Sınıf
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Zorluk Seviyesi */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">
-          {t('controlPanel.difficulty')}
+        <h3 className="text-sm font-semibold text-gray-700 mb-1">
+          {isFidelity ? 'Detay Seviyesi' : isClassic ? 'Zorluk Seviyesi' : 'Öğrenci Zorluk Seviyesi'}
         </h3>
+        <p className="text-xs text-gray-500 mb-3">
+          {isFidelity 
+            ? 'Bu seçenek pano, şablon veya ileri seviye çalışmalar içindir. Sınıf seviyesi yerine detay seviyesi önceliklidir.'
+            : isClassic
+            ? 'Kare sayısı ve renk yoğunluğunu etkiler.'
+            : ''}
+        </p>
 
         {/* Mini Seviyesi */}
         <div className="mb-2">

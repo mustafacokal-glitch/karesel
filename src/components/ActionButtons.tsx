@@ -231,8 +231,10 @@ export default function ActionButtons() {
       const processingMode = useProjectStore.getState().processingMode;
       const gradeLevel = useProjectStore.getState().gradeLevel || 1;
       let ageGroup = 'kindergarten';
-      if (gradeLevel === 1 || gradeLevel === 2) ageGroup = 'grade1-2';
-      else if (gradeLevel === 3 || gradeLevel === 4) ageGroup = 'grade3-4';
+      if (gradeLevel === 1) ageGroup = 'grade1';
+      else if (gradeLevel === 2) ageGroup = 'grade2';
+      else if (gradeLevel === 3) ageGroup = 'grade3';
+      else if (gradeLevel === 4) ageGroup = 'grade4';
 
       const difficultyMap: Record<number, string> = { 1: 'easy', 2: 'balanced', 3: 'advanced', 4: 'advanced' };
       const diff = difficultyMap[difficultyLevel] || 'balanced';
@@ -245,6 +247,7 @@ export default function ActionButtons() {
         ageLevel: ageGroup,
         colorSettings: `max_${DIFFICULTY_MAX_COLORS[difficultyLevel] || 10}_tol_${useProjectStore.getState().colorTolerance}`,
         processingMode,
+        intent: useProjectStore.getState().intent,
         offsetX: useProjectStore.getState().offsetX,
         offsetY: useProjectStore.getState().offsetY
       });
@@ -333,7 +336,7 @@ export default function ActionButtons() {
         useProjectStore.getState().setDownloadProgressText(`🤖 Yapay Zeka Düşünüyor...`);
         await new Promise(r => setTimeout(r, 10)); // UI paint
 
-        const aiResult = await WorkerManager.runAIPipeline(cleanData, ageGroup as any, diff as any, useProjectStore.getState().colorTolerance, useProjectStore.getState().offsetX, useProjectStore.getState().offsetY);
+        const aiResult = await WorkerManager.runAIPipeline(cleanData, ageGroup as any, diff as any, useProjectStore.getState().colorTolerance, useProjectStore.getState().offsetX, useProjectStore.getState().offsetY, useProjectStore.getState().intent);
 
         const { sequentialGrid, sequentialColorMap } = sequentializeColors(aiResult.pixelGrid, aiResult.colorMap);
         

@@ -6,10 +6,14 @@
  * ============================================================
  */
 
+// No extra imports needed yet
+
 export const PIPELINE_CONFIG = {
   // 1. Pixel Engine (Mode-Pooling)
   PIXEL_ENGINE: {
-    ALPHA_THRESHOLD: 128,
+    ALPHA_THRESHOLD: 128, // Legacy threshold
+    MIN_ALPHA_COVERAGE: 0.02,
+    USE_ALPHA_WEIGHTED_POOLING: true,
     JPEG_NOISE: {
       MIN_RGB: 215,
       MAX_DIFF: 20
@@ -60,10 +64,10 @@ export const PIPELINE_CONFIG = {
   }
 };
 
-export const SHAPE_PRESERVATION_BY_DIFFICULTY: Record<number, { medianRadius: number; edgeThreshold: number }> = {
-  1: { medianRadius: 1, edgeThreshold: 45 }, // Mini - 1. sınıf, en agresif temizlik
-  2: { medianRadius: 1, edgeThreshold: 50 },
+export const SHAPE_PRESERVATION_BY_DIFFICULTY: Record<number, { medianRadius: number; edgeThreshold: number; foregroundProtectionThreshold?: number }> = {
+  1: { medianRadius: 1, edgeThreshold: 45, foregroundProtectionThreshold: 0.30 }, // Mini - 1. sınıf, en agresif temizlik
+  2: { medianRadius: 1, edgeThreshold: 50, foregroundProtectionThreshold: 0.30 },
   // Zor seviyesinde detay kaybını (kontur kırılmasını) önlemek için medianRadius 0 yapıldı
-  3: { medianRadius: 0, edgeThreshold: 55 },
-  4: { medianRadius: 0, edgeThreshold: 60 }, // Advanced - detay korunsun, blur YOK
+  3: { medianRadius: 0, edgeThreshold: 55, foregroundProtectionThreshold: 0.20 },
+  4: { medianRadius: 0, edgeThreshold: 60, foregroundProtectionThreshold: 0.15 }, // Advanced - detay korunsun, blur YOK
 };

@@ -11,7 +11,7 @@ export default function AIQESDashboard() {
 
   if (processingMode !== 'educational_ai' || !report) return null;
 
-  const { aiqesScore, recognizability, shapePreservation, educationalComplexity, colorSimplicity, worksheetEffort, motivation } = report;
+  const { aiqesScore, recognizability, shapePreservation, educationalComplexity, colorSimplicity, worksheetEffort, motivation, printability, originalSimilarity, educationalUsability } = report;
 
   // -- Eğitsel Veri Hesaplamaları --
   const colorsCount = Object.keys(colorMap || {}).length;
@@ -35,6 +35,7 @@ export default function AIQESDashboard() {
   const suggestions: string[] = [];
 
   const analyzeMetric = (metric: any, _title: string) => {
+    if (!metric) return;
     // 85 ve üzeri puanlar güçlü yön kabul edilir
     if (metric.score >= 85) {
       strengths.push(metric.explanation);
@@ -51,6 +52,9 @@ export default function AIQESDashboard() {
   analyzeMetric(colorSimplicity, 'Odaklanma Süresi');
   analyzeMetric(worksheetEffort, 'Motor Beceriler');
   analyzeMetric(motivation, 'Eğitsel Motivasyon');
+  analyzeMetric(printability, 'Yazdırılabilirlik');
+  analyzeMetric(originalSimilarity, 'Orijinal Benzerliği');
+  analyzeMetric(educationalUsability, 'Eğitsel Kullanılabilirlik');
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'text-emerald-600';

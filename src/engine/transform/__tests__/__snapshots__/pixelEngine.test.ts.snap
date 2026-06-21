@@ -20,6 +20,46 @@ exports[`pixelEngine - processImageToGrid > should correctly pool pixels into a 
       "r": 237,
     },
   },
+  "featureConfidenceGrid": [
+    [
+      0,
+      0,
+    ],
+    [
+      0,
+      0,
+    ],
+  ],
+  "featureCoverageGrid": [
+    [
+      0,
+      0,
+    ],
+    [
+      0,
+      0,
+    ],
+  ],
+  "featureTypeGrid": [
+    [
+      "none",
+      "none",
+    ],
+    [
+      "none",
+      "none",
+    ],
+  ],
+  "foregroundCoverageGrid": [
+    [
+      1,
+      1,
+    ],
+    [
+      0.25,
+      0.01568627450980392,
+    ],
+  ],
   "pixelGrid": [
     [
       24,
@@ -27,6 +67,26 @@ exports[`pixelEngine - processImageToGrid > should correctly pool pixels into a 
     ],
     [
       24,
+      0,
+    ],
+  ],
+  "protectedCells": [
+    [
+      "none",
+      "none",
+    ],
+    [
+      "none",
+      "none",
+    ],
+  ],
+  "sourceBlackCoverageGrid": [
+    [
+      1,
+      0,
+    ],
+    [
+      1,
       0,
     ],
   ],

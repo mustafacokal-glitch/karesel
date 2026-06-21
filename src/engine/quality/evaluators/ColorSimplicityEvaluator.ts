@@ -2,8 +2,16 @@ import { AIQESInput, EvaluationResult } from '../types';
 
 export class ColorSimplicityEvaluator {
   public static evaluate(input: AIQESInput): EvaluationResult {
-    const { optimizedPalette, ageGroup } = input;
+    const { optimizedPalette, ageGroup, intent } = input;
     const colorCount = optimizedPalette.length;
+
+    if (intent === 'fidelity') {
+      return {
+        score: 100,
+        explanation: `Fidelity mode permits rich palettes to preserve original similarity. (${colorCount} colors used)`,
+        recommendations: []
+      };
+    }
     
     let score = 100;
     const recommendations: string[] = [];

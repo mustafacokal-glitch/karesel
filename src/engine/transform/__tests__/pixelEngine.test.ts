@@ -36,11 +36,11 @@ describe('pixelEngine - processImageToGrid', () => {
     setPixel(1, 3, 56, 53, 54); // Siyah (Kontur kuralını test etmek için yeterli, %25 > %15)
 
     // Sağ alt blok (1,1) - Beyaz (Gürültü simülasyonu)
-    // 255, 255, 255 ama alpha 120 (şeffaflık sınırı altında, dolayısıyla yoksayılmalı)
-    setPixel(2, 2, 255, 255, 255, 120);
-    setPixel(3, 2, 255, 255, 255, 120);
-    setPixel(2, 3, 255, 255, 255, 120);
-    setPixel(3, 3, 255, 255, 255, 120);
+    // 255, 255, 255 ama alpha 4 (coverage 4/255 < 0.02, dolayısıyla yoksayılmalı)
+    setPixel(2, 2, 255, 255, 255, 4);
+    setPixel(3, 2, 255, 255, 255, 4);
+    setPixel(2, 3, 255, 255, 255, 4);
+    setPixel(3, 3, 255, 255, 255, 4);
 
     const imageData: ImageData = { width, height, data, colorSpace: 'srgb' };
 
@@ -48,5 +48,59 @@ describe('pixelEngine - processImageToGrid', () => {
     const result = await processImageToGrid(imageData, 2, 2, 4);
 
     expect(result).toMatchSnapshot();
+  });
+
+  it('should correctly weight semi-transparent pixels using alpha coverage', async () => {
+    const width = 2;
+    const height = 1;
+    const data = new Uint8ClampedArray(width * height * 4);
+
+    const setPixel = (x: number, y: number, r: number, g: number, b: number, a = 255) => {
+      const idx = (y * width + x) * 4;
+      data[idx] = r;
+      data[idx + 1] = g;
+      data[idx + 2] = b;
+      data[idx + 3] = a;
+    };
+
+    // Hücrenin pikselleri:
+    // 1. Piksel: %10 Saydam Kırmızı
+    // 2. Piksel: Tamamen şeffaf (alpha 0) - yoksayılır
+    setPixel(0, 0, 237, 10, 63, 25); 
+    setPixel(1, 0, 255, 255, 255, 0); 
+
+    const imageData: ImageData = { width, height, data, colorSpace: 'srgb' };
+
+    // 1x1 grid
+    const result = await processImageToGrid(imageData, 1, 1, 4);
+
+    // Kırmızı olarak algılanmalıdır, şeffaf pikseller rengi sulandırmamalıdır
+    expect(result.pixelGrid[0][0]).toBe(7); // Kırmızı ID = 7
+  });
+
+  it('should preserve anti-aliased black edge producing stable outline', async () => {
+    const width = 2;
+    const height = 1;
+    const data = new Uint8ClampedArray(width * height * 4);
+
+    const setPixel = (x: number, y: number, r: number, g: number, b: number, a = 255) => {
+      const idx = (y * width + x) * 4;
+      data[idx] = r;
+      data[idx + 1] = g;
+      data[idx + 2] = b;
+      data[idx + 3] = a;
+    };
+
+    // Siyah (id=24) ama yarı saydam
+    setPixel(0, 0, 56, 53, 54, 50); // %20 Alpha
+    setPixel(1, 0, 255, 255, 255, 0); // Boşluk
+
+    const imageData: ImageData = { width, height, data, colorSpace: 'srgb' };
+
+    const result = await processImageToGrid(imageData, 1, 1, 4);
+
+    // Alpha 128 eşiği kalsaydı bu siyah silinir hücre BOŞ olurdu. 
+    // Alpha-aware pooling sayesinde siyah olarak kalır!
+    expect(result.pixelGrid[0][0]).toBe(24);
   });
 });

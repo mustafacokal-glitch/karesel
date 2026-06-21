@@ -4,7 +4,10 @@ import { ProjectStore, AIQESReport, ProcessingMode, GridDimensions, PixelGrid, C
 
 const useProjectStore = create<ProjectStore>((set) => ({
   // Pipeline Modu
-  processingMode: 'classic', // 'classic' | 'educational_ai'
+  processingMode: 'educational_ai', // 'classic' | 'educational_ai'
+  
+  // AI Intent
+  intent: 'pedagogical-fidelity', // 'educational' | 'pedagogical-fidelity' | 'fidelity'
   
   // AIQES Raporu
   aiqesReport: null,
@@ -77,6 +80,8 @@ const useProjectStore = create<ProjectStore>((set) => ({
   // --- Aksiyonlar ---
 
   setProcessingMode: (mode: ProcessingMode) => set({ processingMode: mode }),
+
+  setIntent: (intent: ProcessingIntent) => set({ intent }),
 
   setAiqesReport: (report: AIQESReport | null) => set({ aiqesReport: report }),
 
@@ -266,7 +271,8 @@ const useProjectStore = create<ProjectStore>((set) => ({
 
   // --- Sıfırlama ---
   reset: () => set({
-    processingMode: 'classic',
+    processingMode: 'educational_ai',
+    intent: 'educational',
     aiqesReport: null,
     uploadedImage: null,
     imageAspectRatio: null,
