@@ -41,7 +41,7 @@ const useProjectStore = create<ProjectStore>((set) => ({
   colorMap: {},
 
   // Çözüm anahtarının gösterilip gösterilmeyeceği
-  showSolution: false,
+  showSolution: true,
 
   // Kağıt yönü: 'portrait' veya 'landscape'
   orientation: 'portrait',
@@ -255,7 +255,7 @@ const useProjectStore = create<ProjectStore>((set) => ({
     pixelGrid: null,
     solutionGrid: null,
     colorMap: {},
-    showSolution: false,
+    showSolution: true,
     isEditMode: false,
     selectedColorId: 1,
     isSymmetryMode: false,
@@ -278,7 +278,7 @@ const useProjectStore = create<ProjectStore>((set) => ({
     pixelGrid: null,
     solutionGrid: null,
     colorMap: {},
-    showSolution: false,
+    showSolution: true,
     orientation: 'portrait',
     cellSize: 20,
     isProcessing: false,

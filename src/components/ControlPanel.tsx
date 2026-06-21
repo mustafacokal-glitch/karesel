@@ -300,9 +300,12 @@ export default function ControlPanel() {
             value={colorTolerance}
             onChange={(e) => {
               setColorTolerance(Number(e.target.value));
-              if (uploadedImage) {
-                useProjectStore.getState().triggerRegenerate();
-              }
+            }}
+            onMouseUp={() => {
+              if (uploadedImage) useProjectStore.getState().triggerRegenerate();
+            }}
+            onTouchEnd={() => {
+              if (uploadedImage) useProjectStore.getState().triggerRegenerate();
             }}
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
           />
@@ -332,9 +335,12 @@ export default function ControlPanel() {
               value={offsetX}
               onChange={(e) => {
                 setOffsetX(Number(e.target.value));
-                if (uploadedImage) {
-                  useProjectStore.getState().triggerRegenerate();
-                }
+              }}
+              onMouseUp={() => {
+                if (uploadedImage) useProjectStore.getState().triggerRegenerate();
+              }}
+              onTouchEnd={() => {
+                if (uploadedImage) useProjectStore.getState().triggerRegenerate();
               }}
               className="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
             />
@@ -353,9 +359,12 @@ export default function ControlPanel() {
               value={offsetY}
               onChange={(e) => {
                 setOffsetY(Number(e.target.value));
-                if (uploadedImage) {
-                  useProjectStore.getState().triggerRegenerate();
-                }
+              }}
+              onMouseUp={() => {
+                if (uploadedImage) useProjectStore.getState().triggerRegenerate();
+              }}
+              onTouchEnd={() => {
+                if (uploadedImage) useProjectStore.getState().triggerRegenerate();
               }}
               className="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
             />

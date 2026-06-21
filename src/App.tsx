@@ -104,17 +104,16 @@ function ErrorBanner() {
 export default function App() {
   return (
     <ErrorBoundary>
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-50">
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-50 overflow-hidden">
           {/* Header - tam genişlik */}
-          <div className="mb-6">
+          <div className="w-full px-4 sm:px-6 lg:px-8 py-2 flex-shrink-0">
             <Header />
           </div>
 
           {/* Asimetrik Layout: Sol panel (dar) + Sağ panel (geniş) */}
-          <div className="flex flex-col lg:flex-row gap-6">
+          <div className="flex flex-col lg:flex-row gap-6 px-4 sm:px-6 lg:px-8 pb-4 flex-1 min-h-0 overflow-hidden">
             {/* Sol Panel: Upload + Kontroller + Renk Tablosu */}
-            <aside className="w-full lg:w-72 xl:w-80 flex-shrink-0 space-y-6">
+            <aside className="w-full lg:w-72 xl:w-80 flex-shrink-0 space-y-6 overflow-y-auto pr-2 pb-24 custom-scrollbar">
               <ErrorBoundary>
                 <UploadZone />
               </ErrorBoundary>
@@ -125,7 +124,7 @@ export default function App() {
             </aside>
 
             {/* Sağ Panel: Çalışma Alanı + Aksiyon Butonları */}
-            <main className="flex-1 min-w-0 space-y-6">
+            <main className="flex-1 min-w-0 space-y-6 overflow-y-auto pr-2 pb-24 custom-scrollbar">
               <ErrorBoundary>
                 <Workspace />
               </ErrorBoundary>
@@ -143,14 +142,12 @@ export default function App() {
               </ErrorBoundary>
             </main>
           </div>
+          {/* Yükleme Overlay */}
+          <LoadingOverlay />
+
+          {/* Hata Bildirimi */}
+          <ErrorBanner />
         </div>
-
-        {/* Yükleme Overlay */}
-        <LoadingOverlay />
-
-        {/* Hata Bildirimi */}
-        <ErrorBanner />
-      </div>
     </ErrorBoundary>
   );
 }

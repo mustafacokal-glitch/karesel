@@ -328,7 +328,7 @@ export default function Workspace() {
 
             {/* Canvas Izgarası */}
             <div
-              className="overflow-auto bg-gray-50 p-3 w-full max-h-[75vh] rounded-2xl border border-gray-200 shadow-inner"
+              className="overflow-auto bg-gray-50 p-3 w-full max-h-[100vh] rounded-2xl border border-gray-200 shadow-inner"
               onMouseUp={handleEndInteraction}
               onMouseLeave={handleEndInteraction}
               ref={gridRef}
@@ -370,7 +370,7 @@ export default function Workspace() {
               🔑 Çözüm Anahtarı
             </h4>
             <div
-              className="overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-2 w-full max-h-[95vh]"
+              className="overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-2 w-full max-h-[125vh]"
               onMouseUp={handleEndInteraction}
               onMouseLeave={handleEndInteraction}
               ref={gridRef}

@@ -177,6 +177,7 @@ export default function ActionButtons() {
   const setSolutionGrid = useProjectStore((s) => s.setSolutionGrid);
   const setColorMap = useProjectStore((s) => s.setColorMap);
   const setError = useProjectStore((s) => s.setError);
+  const setShowSolution = useProjectStore((s) => s.setShowSolution);
   const pixelGrid = useProjectStore((s) => s.pixelGrid);
   const isProcessing = useProjectStore((s) => s.isProcessing);
   const showSolution = useProjectStore((s) => s.showSolution);
@@ -242,7 +243,7 @@ export default function ActionButtons() {
         gridSize: useProjectStore.getState().gridDimensions,
         difficulty: difficultyLevel,
         ageLevel: ageGroup,
-        colorSettings: `max_${DIFFICULTY_MAX_COLORS[difficultyLevel] || 10}`,
+        colorSettings: `max_${DIFFICULTY_MAX_COLORS[difficultyLevel] || 10}_tol_${useProjectStore.getState().colorTolerance}`,
         processingMode,
         offsetX: useProjectStore.getState().offsetX,
         offsetY: useProjectStore.getState().offsetY
@@ -355,6 +356,7 @@ export default function ActionButtons() {
         setPixelGrid(finalGrid);
         setSolutionGrid(finalGrid);
         setColorMap(sequentialColorMap);
+        setShowSolution(true);
         useProjectStore.getState().setAiqesReport(aiResult.aiqesReport);
         useProjectStore.getState().setDownloadProgressText(null);
 
@@ -414,6 +416,7 @@ export default function ActionButtons() {
         setPixelGrid(finalGrid);
         setSolutionGrid(finalGrid); // Çözüm anahtarı = temizlenmiş + renk azaltılmış grid
         setColorMap(sequentialColorMap);
+        setShowSolution(true);
 
         const endTime = performance.now();
         SmartCache.set(cacheKey, {

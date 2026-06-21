@@ -4,12 +4,12 @@ const Header = () => {
   const { t, i18n } = useTranslation();
 
   return (
-    <header className="bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-2xl shadow-lg p-6 text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <header className="bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-2xl shadow-lg px-6 py-3 text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
       <div>
-        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight drop-shadow-md flex items-center gap-2">
+        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight drop-shadow-md flex items-center gap-2">
           <span aria-hidden="true">🎨</span> {t('header.title')}
         </h1>
-        <p className="mt-2 text-base md:text-lg font-medium opacity-90">
+        <p className="mt-1 text-sm md:text-base font-medium opacity-90">
           {t('header.subtitle')}
         </p>
       </div>
