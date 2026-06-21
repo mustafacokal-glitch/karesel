@@ -50,6 +50,8 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
 
   // Buffer for fast LAB conversions
   const sharedLAB = new Float64Array(3);
+  const { MIN: CENTER_WEIGHT_MIN, MAX: CENTER_WEIGHT_MAX } = PIPELINE_CONFIG.PIXEL_ENGINE.CENTER_WEIGHT;
+  const PROTECTED_OUTLINE_IDS = new Set(PIPELINE_CONFIG.PIXEL_ENGINE.PROTECTED_COLORS.IDS);
   let lastYieldTime = Date.now();
 
   for (let row = 0; row < rows; row++) {
@@ -159,8 +161,7 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
         const ndx = (blockX[i] - cellCenterX) / halfW;
         const ndy = (blockY[i] - cellCenterY) / halfH;
         const normDist = Math.min(Math.sqrt(ndx * ndx + ndy * ndy), 1);
-        const { MIN, MAX } = PIPELINE_CONFIG.PIXEL_ENGINE.CENTER_WEIGHT;
-        weight *= MAX - (MAX - MIN) * normDist;
+        weight *= CENTER_WEIGHT_MAX - (CENTER_WEIGHT_MAX - CENTER_WEIGHT_MIN) * normDist;
 
         // Kontrast Duyarlılık (Contrast Boost)
         const distToAvg = colorDistLABFlat(pL, pA, pB, avgL, avgA, avgB_, 1.0);
@@ -215,7 +216,9 @@ export async function processImageToGrid(imageData: ImageData, rows: number, col
   const cellsToBlacken: [number, number][] = [];
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
-      if (pixelGrid[row][col] === BLACK_ID) continue;
+      const currentId = pixelGrid[row][col];
+      if (currentId === BLACK_ID) continue;
+      if (PROTECTED_OUTLINE_IDS.has(currentId)) continue; // YENİ — Sarı/Koyu Kırmızı/Kahverengi'yi koru
       if (blackRatioGrid[row][col] < SECONDARY_THRESHOLD_RATIO) continue;
 
       let blackNeighbors = 0;

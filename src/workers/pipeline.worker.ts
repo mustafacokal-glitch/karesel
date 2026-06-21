@@ -36,7 +36,7 @@ self.onmessage = async (e: MessageEvent) => {
       const flatBuffer = flattenGrid(result.pixelGrid).buffer;
       delete result.pixelGrid; // Prevent structured cloning of 2D array
       
-      self.postMessage({ id, status: 'success', result: { ...result, flatBuffer, rows, cols } }, [flatBuffer]);
+      self.postMessage({ id, status: 'success', result: { ...result, flatBuffer, rows, cols } });
       
     } else if (type === 'RUN_CLASSIC_PIPELINE') {
       const { imageDataArray, width, height, rows, cols, difficultyLevel, offsetX, offsetY } = payload;
@@ -51,14 +51,14 @@ self.onmessage = async (e: MessageEvent) => {
       const enableThinning = difficultyLevel >= 4; 
       const { cleanGrid, cleanColors } = applySmartCleaners(pixelGrid, colorMap, PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE.ID, enableThinning);
       
-      // Zero-copy transfer optimization
+      // Structured cloning is very fast for small grids (~5-10 KB), avoiding transfer detached errors.
       const flatBuffer = flattenGrid(cleanGrid).buffer;
       
       self.postMessage({ 
         id, 
         status: 'success', 
         result: { cleanColors, flatBuffer, rows, cols } 
-      }, [flatBuffer]);
+      });
     } else {
       throw new Error(`Unknown worker message type: ${type}`);
     }
