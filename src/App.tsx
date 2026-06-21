@@ -121,9 +121,7 @@ export default function App() {
               <ErrorBoundary>
                 <ControlPanel />
               </ErrorBoundary>
-              <ErrorBoundary>
-                <ColorLegend />
-              </ErrorBoundary>
+
             </aside>
 
             {/* Sağ Panel: Çalışma Alanı + Aksiyon Butonları */}
@@ -131,6 +129,7 @@ export default function App() {
               <ErrorBoundary>
                 <Workspace />
               </ErrorBoundary>
+
               <ErrorBoundary>
                 <AIQESDashboard />
               </ErrorBoundary>
@@ -139,6 +138,9 @@ export default function App() {
                   <ActionButtons />
                 </ErrorBoundary>
               </div>
+              <ErrorBoundary>
+                <ColorLegend />
+              </ErrorBoundary>
             </main>
           </div>
         </div>

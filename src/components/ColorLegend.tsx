@@ -78,15 +78,15 @@ export default function ColorLegend() {
           {isEditMode && (
             <button
               onClick={() => setSelectedColorId(0)}
-              className={`flex flex-col items-center justify-center rounded-xl p-2 border-2 transition-all h-16 ${
+              className={`flex flex-col items-center justify-center rounded-xl p-2 border-2 transition-all min-h-[84px] ${
                 selectedColorId === 0
                   ? 'border-red-500 bg-red-50 shadow-md'
                   : 'border-gray-200 hover:border-red-300 hover:bg-red-50'
               }`}
               title="Silgi"
             >
-              <span className="text-xl">🧹</span>
-              <span className="text-[10px] font-medium text-gray-500 mt-0.5">
+              <span className="text-2xl mb-1">🧹</span>
+              <span className="text-xs font-bold text-gray-600 mt-0.5 text-center">
                 Silgi
               </span>
             </button>
@@ -103,7 +103,7 @@ export default function ColorLegend() {
               onTouchMove={handleEnd}
               onContextMenu={(e) => handleContextMenu(e, id)}
               onClick={() => handleColorClick(id)}
-              className={`flex flex-col items-center justify-center rounded-xl p-2 border-2 transition-all h-[72px] cursor-pointer hover:border-blue-300 select-none ${
+              className={`flex flex-col items-center justify-center rounded-xl p-2 border-2 transition-all min-h-[84px] cursor-pointer hover:border-blue-300 select-none ${
                 selectedColorId === Number(id)
                   ? 'border-blue-500 shadow-md scale-105'
                   : 'border-gray-200'
@@ -118,11 +118,11 @@ export default function ColorLegend() {
                 className="w-7 h-7 rounded-lg border border-gray-300 flex-shrink-0"
                 style={{ backgroundColor: color?.hex || '#ffffff' }}
               />
-              <span className="text-[9px] font-bold text-gray-600 mt-0.5 leading-none">
+              <span className="text-[10px] font-extrabold text-gray-700 mt-1 leading-none">
                 {id}
               </span>
               <span
-                className="text-[8px] text-gray-500 mt-0.5 leading-tight text-center w-full overflow-hidden"
+                className="text-xs font-bold text-gray-600 mt-1 leading-tight text-center w-full overflow-hidden"
                 style={{ display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
               >
                 {color?.name || ''}
