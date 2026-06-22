@@ -212,7 +212,7 @@ function drawSolutionPage(doc: jsPDF, solutionGrid: any, colorMap: any, gridDime
   // ---- 1. Başlık ----
   doc.setFont('Roboto', 'bold');
   doc.setFontSize(20);
-  const title = normalizeText('ÇÖZÜM ANAHTARI (ÖĞRETMEN REHBERİ)');
+  const title = normalizeText('ÇÖZÜM ANAHTARI');
   doc.setTextColor(0, 0, 0);
   LTRTextRenderer.renderText(doc, title, PAGE_WIDTH / 2, MARGIN_TOP + 8, { align: 'center' });
 
