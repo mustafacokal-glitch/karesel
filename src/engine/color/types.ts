@@ -1,10 +1,14 @@
 export type AgeGroup = 'kindergarten' | 'grade1' | 'grade2' | 'grade3' | 'grade4';
 
+import { AccentColorFamily } from './AccentColorFamilies';
+
 export interface ColorConfig {
   highContrastMode: boolean;
   maxColors?: number;
   preserveOutlines?: boolean;
   tolerance?: number;
+  requiredAccentFamilies?: AccentColorFamily[];
+  protectedColorIds?: number[];
 }
 
 export interface ColorInfo {

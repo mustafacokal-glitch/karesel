@@ -67,6 +67,33 @@ export const PIPELINE_CONFIG = {
     SMOOTH_EDGES: {
       PROTECTED_IDS: [24, 1, 4, 7, 8, 14, 19, 20, 22] // Siyah, Beyaz, Sarı, Kırmızı, Koyu Kırmızı, Mavi, Yeşil, Koyu Yeşil, Kahverengi
     }
+  },
+
+  // 4. Characteristic Details Engine
+  CHARACTERISTIC_DETAILS: {
+    ENABLED: true,
+    PROTECTED_ACCENT_PALETTE_IDS: [7, 8, 9, 10, 13, 14, 15, 16, 21, 22],
+    MIN_ACCENT_CELLS: {
+      easy:     { blue: 2, red: 3, brown: 1 },
+      balanced: { blue: 4, red: 5, brown: 2 },
+      advanced: { blue: 5, red: 7, brown: 2 },
+      expert:   { blue: 8, red: 9, brown: 3 },
+    } as Record<string, { blue: number; red: number; brown: number }>,
+    MAX_BLACK_FOREGROUND_RATIO: {
+      easy: 0.40,
+      balanced: 0.38,
+      advanced: 0.36,
+      expert: 0.34,
+    } as Record<string, number>,
+    FAMILY_PRIORITY: {
+      black: 100,
+      orange: 90,
+      cream: 80,
+      red: 75,
+      blue: 75,
+      brown: 70,
+      other: 10,
+    }
   }
 };
 

@@ -1,6 +1,22 @@
 import { ProcessingIntent } from '../grid/types';
 
-export type FeatureType = 'eye' | 'nose' | 'mouth' | 'whisker' | 'stripe' | 'inner-ear' | 'outline' | 'accent' | 'noise';
+export type FeatureType =
+  | 'eye'
+  | 'nose'
+  | 'mouth'
+  | 'whisker'
+  | 'stripe'
+  | 'inner-ear'
+  | 'outline'
+  | 'accent'
+  | 'collar'
+  | 'tongue'
+  | 'brown-nose'
+  | 'chest'
+  | 'paw'
+  | 'tail'
+  | 'accent-important'
+  | 'noise';
 
 export type ProtectionLevel = 'hard' | 'soft' | 'none';
 
@@ -261,8 +277,38 @@ export class KeyFeaturePreservationEngine {
           type = 'inner-ear';
           protection = 'soft';
         } else {
-          type = 'accent';
-          protection = 'soft';
+          // Color based feature checks
+          const [r, g, b] = comp.color;
+          const saturation = Math.max(r, g, b) > 0 ? (Math.max(r, g, b) - Math.min(r, g, b)) / Math.max(r, g, b) : 0;
+          
+          const isBlueAccent = b > 120 && g > 80 && r < 120 && saturation > 0.35;
+          const isCollarRegion = centerY > h * 0.35 && centerY < h * 0.68 && centerX > w * 0.12 && centerX < w * 0.88;
+          
+          const isRedOrPink = r > 150 && g < 140 && b < 160;
+          const isTongueRegion = centerY > h * 0.42 && centerY < h * 0.75 && centerX > w * 0.30 && centerX < w * 0.70;
+          
+          const isBrown = r >= 60 && r <= 160 && g >= 30 && g <= 120 && b >= 15 && b <= 100 && r > g && g >= b * 0.7;
+          const isNoseRegion = centerY > h * 0.25 && centerY < h * 0.58 && centerX > w * 0.32 && centerX < w * 0.68;
+          
+          const isCream = r > 200 && g > 180 && b > 140 && r > b && g > b;
+          const isChestRegion = centerY > h * 0.5 && centerX > w * 0.3 && centerX < w * 0.7;
+
+          if (isBlueAccent && isCollarRegion && relativeArea < 0.08) {
+            type = 'collar';
+            protection = 'hard';
+          } else if (isRedOrPink && isTongueRegion && relativeArea < 0.08) {
+            type = 'tongue';
+            protection = 'hard';
+          } else if (isBrown && isNoseRegion && relativeArea < 0.05) {
+            type = 'brown-nose';
+            protection = 'hard';
+          } else if (isCream && isChestRegion && relativeArea > 0.02 && relativeArea < 0.2) {
+            type = 'chest';
+            protection = 'soft';
+          } else {
+            type = 'accent';
+            protection = 'soft';
+          }
         }
       }
 

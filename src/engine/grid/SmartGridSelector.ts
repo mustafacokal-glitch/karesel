@@ -1,4 +1,4 @@
-import { GridRecommendation, GridSelectionInput } from './types';
+import { GridRecommendation, GridSelectionInput, DIFFICULTY_GRID_PROFILES, EducationalDifficulty } from './types';
 
 export class SmartGridSelector {
   /**
@@ -18,16 +18,7 @@ export class SmartGridSelector {
       else if (difficulty === 'advanced') maxBound = 50;
       else if (difficulty === 'expert') maxBound = 64;
     } else if (input.intent === 'pedagogical-fidelity') {
-      switch (ageGroup) {
-        case 'kindergarten': minBound = 8; maxBound = 10; break;
-        case 'grade1': minBound = 10; maxBound = 15; break;
-        case 'grade2': minBound = 15; maxBound = 20; break;
-        case 'grade3': 
-          minBound = 25; 
-          maxBound = 30; 
-          break;
-        case 'grade4': minBound = 30; maxBound = 40; break;
-      }
+      // pedagogical-fidelity uses strict DIFFICULTY_GRID_PROFILES below
     } else {
       switch (ageGroup) {
         case 'kindergarten':
@@ -55,19 +46,27 @@ export class SmartGridSelector {
 
     // 2. Adjust target max scale based on difficulty
     let targetMax = Math.round((minBound + maxBound) / 2); // default balanced
-    if (difficulty === 'easy') {
-      targetMax = minBound;
-    } else if (difficulty === 'advanced' || difficulty === 'expert') {
-      targetMax = maxBound;
-    }
+    
+    if (input.intent === 'pedagogical-fidelity') {
+      const profile = DIFFICULTY_GRID_PROFILES[difficulty as EducationalDifficulty];
+      if (profile) {
+        targetMax = profile.targetSize;
+        minBound = profile.minSize;
+        maxBound = profile.maxSize;
+      }
+    } else {
+      if (difficulty === 'easy') {
+        targetMax = minBound;
+      } else if (difficulty === 'advanced' || difficulty === 'expert') {
+        targetMax = maxBound;
+      }
 
-    // Adjust targetMax based on complexity: highly complex images push towards the upper bound of the difficulty scale
-    if (input.intent === 'pedagogical-fidelity' && input.ageGroup === 'grade3' && difficulty === 'balanced') {
-      targetMax = input.hasImportantFeatures ? maxBound : minBound;
-    } else if (metrics.overallComplexityScore > 80 && targetMax < maxBound) {
-      targetMax = Math.min(targetMax + 3, maxBound);
-    } else if (metrics.overallComplexityScore < 20 && targetMax > minBound) {
-      targetMax = Math.max(targetMax - 3, minBound);
+      // Adjust targetMax based on complexity
+      if (metrics.overallComplexityScore > 80 && targetMax < maxBound) {
+        targetMax = Math.min(targetMax + 3, maxBound);
+      } else if (metrics.overallComplexityScore < 20 && targetMax > minBound) {
+        targetMax = Math.max(targetMax - 3, minBound);
+      }
     }
 
     // Ensure we don't violate the absolute maximums for the age group

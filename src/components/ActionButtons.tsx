@@ -10,6 +10,7 @@ import { launchConfetti } from '../utils/confetti';
 import { PIPELINE_CONFIG } from '../config/pipelineConfig';
 import { SmartCache } from '../cache/SmartCache';
 import { ImageProcessingError, PDFGenerationError, KareselError } from '../errors/KareselErrors';
+import { EducationalDifficulty, DIFFICULTY_GRID_PROFILES, DIFFICULTY_GRID_PROFILE_VERSION } from '../engine/grid/types';
 
 /**
  * Zorluk seviyesine göre maksimum renk sayısı
@@ -236,14 +237,22 @@ export default function ActionButtons() {
       else if (gradeLevel === 3) ageGroup = 'grade3';
       else if (gradeLevel === 4) ageGroup = 'grade4';
 
-      const difficultyMap: Record<number, string> = { 1: 'easy', 2: 'balanced', 3: 'advanced', 4: 'advanced' };
-      const diff = difficultyMap[difficultyLevel] || 'balanced';
+      const difficultyMap: Record<number, EducationalDifficulty> = { 0: 'easy', 1: 'easy', 2: 'balanced', 3: 'advanced', 4: 'expert' };
+      const diff = difficultyMap[difficultyLevel] ?? 'balanced';
+
+      console.info('[KARESEL] Educational difficulty resolved', {
+        rawDifficulty: difficultyLevel,
+        resolvedDifficulty: diff,
+        gradeLevel,
+        targetGridProfile: DIFFICULTY_GRID_PROFILES[diff],
+      });
 
       // --- SMART CACHE CHECK ---
       const cacheKey = SmartCache.generateKey({
         imageHash: SmartCache.fastHash(uploadedImage),
         gridSize: useProjectStore.getState().gridDimensions,
-        difficulty: difficultyLevel,
+        difficulty: diff,
+        gridProfileVersion: DIFFICULTY_GRID_PROFILE_VERSION,
         ageLevel: ageGroup,
         colorSettings: `max_${DIFFICULTY_MAX_COLORS[difficultyLevel] || 10}_tol_${useProjectStore.getState().colorTolerance}`,
         processingMode,

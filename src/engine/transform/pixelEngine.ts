@@ -7,8 +7,9 @@
  */
 
 import { PIPELINE_CONFIG } from '../../config/pipelineConfig';
-import { PALETTE, PALETTE_LAB, rgb2lab, rgb2labFast, colorDistLABFlat, getPaletteForDifficulty } from '../color/colorDistance';
-import { FeatureMask, KeyFeature } from './KeyFeaturePreservationEngine';
+import { colorDistLABFlat, rgb2labFast, rgb2lab, PALETTE, PALETTE_LAB, getPaletteForDifficulty } from '../color/colorDistance';
+import { KeyFeature, FeatureMask } from './KeyFeaturePreservationEngine';
+import { findNearestPaletteIdInFamily } from '../color/AccentColorFamilies';
 
 // Siyah renk ID'si (kontur kuralı için)
 const BLACK_ID = PIPELINE_CONFIG.PIXEL_ENGINE.OUTLINE.ID;
@@ -245,22 +246,61 @@ export async function processImageToGrid(
         freqMap.set(paletteId, (freqMap.get(paletteId) || 0) + weight);
       }
 
-      // Feature Evaluation
-      let dominantFeature: KeyFeature | null = null;
-      let featureCoverage = 0;
+      // Feature Evaluation using priority-based selection
+      let selectedFeature: KeyFeature | null = null;
+      let selectedFeatureCoverage = 0;
       
+      const FEATURE_PRIORITY: Record<string, number> = {
+        'eye': 100,
+        'nose': 95,
+        'brown-nose': 95,
+        'tongue': 90,
+        'collar': 90,
+        'mouth': 80,
+        'chest': 60,
+        'accent-important': 60,
+        'whisker': 50,
+        'inner-ear': 45,
+        'outline': 40,
+        'stripe': 30,
+        'accent': 20,
+        'noise': 0
+      };
+
+      const FEATURE_COVERAGE_THRESHOLDS: Record<string, number> = {
+        'eye': 0.02,
+        'nose': 0.035,
+        'brown-nose': 0.012,
+        'mouth': 0.015,
+        'tongue': 0.010,
+        'collar': 0.006,
+        'whisker': 0.01,
+        'stripe': 0.05,
+        'inner-ear': 0.04,
+        'chest': 0.03,
+        'paw': 0.03,
+        'tail': 0.03,
+        'accent-important': 0.01,
+        'accent': 0.05
+      };
+
       if (options?.featureMask && featureIdCounts.size > 0) {
-        let maxFeatureCount = 0;
-        let maxFeatureId = 0;
+        let bestPriority = -1;
+        
         for (const [fId, count] of featureIdCounts) {
-          if (count > maxFeatureCount) {
-            maxFeatureCount = count;
-            maxFeatureId = fId;
+          const coverage = count / blockPixelCount;
+          const feature = options.featureMask.features.get(fId);
+          if (!feature) continue;
+          
+          const threshold = FEATURE_COVERAGE_THRESHOLDS[feature.type] || 0.05;
+          if (coverage >= threshold) {
+            const priority = FEATURE_PRIORITY[feature.type] || 10;
+            if (priority > bestPriority) {
+              bestPriority = priority;
+              selectedFeature = feature;
+              selectedFeatureCoverage = coverage;
+            }
           }
-        }
-        if (maxFeatureId > 0) {
-          dominantFeature = options.featureMask.features.get(maxFeatureId) || null;
-          featureCoverage = maxFeatureCount / blockPixelCount;
         }
       }
 
@@ -269,34 +309,39 @@ export async function processImageToGrid(
       let cellFeatureType = 'none';
       let cellFeatureConfidence = 0;
 
-      // Apply Feature Overrides based on thresholds
-      if (dominantFeature) {
-        cellFeatureType = dominantFeature.type;
-        cellProtection = dominantFeature.protection;
-        cellFeatureConfidence = featureCoverage;
+      // Apply Feature Overrides
+      if (selectedFeature) {
+        cellFeatureType = selectedFeature.type;
+        cellProtection = selectedFeature.protection;
+        cellFeatureConfidence = selectedFeatureCoverage;
 
-        // Find nearest palette ID for the feature's color
+        // Find nearest palette ID for the feature's color (legacy fallback)
         let fDist = Infinity;
         let fId = 1;
-        const [fL, fA, fB] = rgb2lab(dominantFeature.color[0], dominantFeature.color[1], dominantFeature.color[2]);
+        const [fL, fA, fB] = rgb2lab(selectedFeature.color[0], selectedFeature.color[1], selectedFeature.color[2]);
         for (const p of allowedPalette) {
           const lab = localLabCache.get(p.id)!;
           const d = colorDistLABFlat(fL, fA, fB, lab[0], lab[1], lab[2], 1.0);
           if (d < fDist) { fDist = d; fId = p.id; }
         }
 
-        const THRESHOLDS: Record<string, number> = {
-          'eye': 0.02, 'nose': 0.04, 'mouth': 0.015, 'whisker': 0.01, 'stripe': 0.05, 'inner-ear': 0.04
-        };
-        const t = THRESHOLDS[dominantFeature.type] || 0.05;
-
-        if (featureCoverage >= t) {
-          if (dominantFeature.type === 'eye' || dominantFeature.type === 'nose') {
-            overrideColorId = BLACK_ID;
-            cellProtection = 'hard';
-          } else if (dominantFeature.type === 'mouth' || dominantFeature.type === 'whisker' || dominantFeature.type === 'inner-ear') {
-            overrideColorId = fId;
-          }
+        if (selectedFeature.type === 'eye' || selectedFeature.type === 'nose') {
+          overrideColorId = BLACK_ID;
+          cellProtection = 'hard';
+        } else if (selectedFeature.type === 'brown-nose') {
+          const brownId = findNearestPaletteIdInFamily(selectedFeature.color, allowedPalette, 'brown');
+          overrideColorId = brownId !== null ? brownId : fId;
+        } else if (selectedFeature.type === 'tongue') {
+          const redId = findNearestPaletteIdInFamily(selectedFeature.color, allowedPalette, 'red');
+          overrideColorId = redId !== null ? redId : fId;
+        } else if (selectedFeature.type === 'collar') {
+          const blueId = findNearestPaletteIdInFamily(selectedFeature.color, allowedPalette, 'blue');
+          overrideColorId = blueId !== null ? blueId : fId;
+        } else if (selectedFeature.type === 'chest') {
+          const creamId = findNearestPaletteIdInFamily(selectedFeature.color, allowedPalette, 'cream');
+          overrideColorId = creamId !== null ? creamId : fId;
+        } else if (selectedFeature.type === 'mouth' || selectedFeature.type === 'whisker' || selectedFeature.type === 'inner-ear' || selectedFeature.type === 'accent-important') {
+          overrideColorId = fId;
         }
       }
 
@@ -332,7 +377,7 @@ export async function processImageToGrid(
           if (sourceBlackCoverage < 0.10) {
             rejectBlack = true;
           } else if (sourceBlackCoverage < 0.25) {
-            if (dominantFeature?.type !== 'stripe' && dominantFeature?.type !== 'outline' && dominantFeature?.type !== 'eye' && dominantFeature?.type !== 'nose') {
+            if (selectedFeature?.type !== 'stripe' && selectedFeature?.type !== 'outline' && selectedFeature?.type !== 'eye' && selectedFeature?.type !== 'nose') {
               rejectBlack = true;
             }
           }
@@ -394,7 +439,7 @@ export async function processImageToGrid(
       gridRow.push(modeId);
       blackRatioRow.push(blockPixelCount > 0 ? blackCount / blockPixelCount : 0);
       fgCoverageRow.push(fgCoverage);
-      featureCoverageGrid[row] = featureCoverageGrid[row] || []; featureCoverageGrid[row].push(featureCoverage);
+      featureCoverageGrid[row] = featureCoverageGrid[row] || []; featureCoverageGrid[row].push(selectedFeatureCoverage);
       featureTypeGrid[row] = featureTypeGrid[row] || []; featureTypeGrid[row].push(cellFeatureType);
       featureConfidenceGrid[row] = featureConfidenceGrid[row] || []; featureConfidenceGrid[row].push(cellFeatureConfidence);
       sourceBlackCoverageGrid[row] = sourceBlackCoverageGrid[row] || []; sourceBlackCoverageGrid[row].push(sourceBlackCoverage);
@@ -419,6 +464,19 @@ export async function processImageToGrid(
       if (currentId === BLACK_ID) continue;
       if (PROTECTED_OUTLINE_IDS.has(currentId)) continue; // YENİ — Sarı/Koyu Kırmızı/Kahverengi'yi koru
       if (blackRatioGrid[row][col] < SECONDARY_THRESHOLD_RATIO) continue;
+
+      // Prevent black expansion over protected detail cells
+      if (protectedCells[row] && protectedCells[row][col] === 'hard') continue;
+          
+      const featureType = featureTypeGrid[row] && featureTypeGrid[row][col] ? featureTypeGrid[row][col] : 'none';
+      if (featureType === 'collar' || featureType === 'tongue' || featureType === 'brown-nose' || featureType === 'eye' || featureType === 'mouth') continue;
+
+      // Check color family for weak protection against blackening
+      const cellColorId = pixelGrid[row][col];
+      const familyIds = PIPELINE_CONFIG.CHARACTERISTIC_DETAILS?.PROTECTED_ACCENT_PALETTE_IDS || [7,8,9,10, 13,14,15,16, 21,22];
+      if (familyIds.includes(cellColorId) && featureType !== 'none') {
+        continue;
+      }
 
       let blackNeighbors = 0;
       for (let dr = -1; dr <= 1; dr++) {

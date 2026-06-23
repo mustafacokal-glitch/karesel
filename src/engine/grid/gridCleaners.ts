@@ -74,7 +74,7 @@ function _countTransitions(neighbors: number[], foreground: number): number {
  * @param {number} outlineId - Kontur renginin palette ID'si (örn. 24 = Siyah)
  * @returns {number[][]} İskeletleştirilmiş grid
  */
-export function zhangSuenThinning(grid: number[][], outlineId: number): number[][] {
+export function zhangSuenThinning(grid: number[][], outlineId: number, protectedCells?: ('hard'|'soft'|'none')[][]): number[][] {
   try {
     if (!outlineId || outlineId <= 0) return grid;
 
@@ -96,6 +96,8 @@ export function zhangSuenThinning(grid: number[][], outlineId: number): number[]
       for (let r = 1; r < rows - 1; r++) {
         for (let c = 1; c < cols - 1; c++) {
           if (result[r][c] !== outlineId) continue;
+
+          if (protectedCells && protectedCells[r][c] === 'hard') continue;
 
           const nb = _getNeighbors(result, r, c);
 
@@ -126,6 +128,8 @@ export function zhangSuenThinning(grid: number[][], outlineId: number): number[]
       for (let r = 1; r < rows - 1; r++) {
         for (let c = 1; c < cols - 1; c++) {
           if (result[r][c] !== outlineId) continue;
+
+          if (protectedCells && protectedCells[r][c] === 'hard') continue;
 
           const nb = _getNeighbors(result, r, c);
 
@@ -178,7 +182,9 @@ export function zhangSuenThinning(grid: number[][], outlineId: number): number[]
               bestColor = color; 
             }
           }
-          result[r][c] = bestColor;
+          if (!protectedCells || protectedCells[r][c] !== 'hard') {
+            result[r][c] = bestColor;
+          }
         }
       }
     }
@@ -446,7 +452,7 @@ export function fillHoles(
  * @param {number[][]} grid - 2D grid
  * @returns {number[][]} Sürekliliği düzeltilmiş grid
  */
-export function fixLineContinuity(grid: number[][]): number[][] {
+export function fixLineContinuity(grid: number[][], protectedCells?: ('hard'|'soft'|'none')[][]): number[][] {
   try {
     const rows = grid.length;
     const cols = grid[0].length;
@@ -464,13 +470,13 @@ export function fixLineContinuity(grid: number[][]): number[][] {
 
         // Vaka A: sol-üst == sağ-alt (diyagonal bağlantı kopuk)
         if (tl !== 0 && br !== 0 && tl === br && tr === 0 && bl === 0) {
-          result[r][c + 1] = tl;
-          result[r + 1][c] = tl;
+          if (!protectedCells || protectedCells[r][c + 1] !== 'hard') result[r][c + 1] = tl;
+          if (!protectedCells || protectedCells[r + 1][c] !== 'hard') result[r + 1][c] = tl;
         }
         // Vaka B: sağ-üst == sol-alt (ters diyagonal bağlantı kopuk)
         else if (tr !== 0 && bl !== 0 && tr === bl && tl === 0 && br === 0) {
-          result[r][c] = tr;
-          result[r + 1][c + 1] = tr;
+          if (!protectedCells || protectedCells[r][c] !== 'hard') result[r][c] = tr;
+          if (!protectedCells || protectedCells[r + 1][c + 1] !== 'hard') result[r + 1][c + 1] = tr;
         }
       }
     }
@@ -482,7 +488,7 @@ export function fixLineContinuity(grid: number[][]): number[][] {
         const mid  = result[r][c];
         const right = result[r][c + 1];
         if (left !== 0 && right !== 0 && left === right && mid === 0) {
-          result[r][c] = left;
+          if (!protectedCells || protectedCells[r][c] !== 'hard') result[r][c] = left;
         }
       }
     }
@@ -494,7 +500,7 @@ export function fixLineContinuity(grid: number[][]): number[][] {
         const mid    = result[r][c];
         const bottom = result[r + 1][c];
         if (top !== 0 && bottom !== 0 && top === bottom && mid === 0) {
-          result[r][c] = top;
+          if (!protectedCells || protectedCells[r][c] !== 'hard') result[r][c] = top;
         }
       }
     }
@@ -510,9 +516,9 @@ export function fixLineContinuity(grid: number[][]): number[][] {
         const br = result[r + 1][c + 1];
 
         if (tl === 1 && br === 1 && tr !== 1 && bl !== 1) {
-          result[r + 1][c] = 1; // Sol altı doldur
+          if (!protectedCells || protectedCells[r + 1][c] !== 'hard') result[r + 1][c] = 1; // Sol altı doldur
         } else if (tr === 1 && bl === 1 && tl !== 1 && br !== 1) {
-          result[r][c] = 1; // Sol üstü doldur
+          if (!protectedCells || protectedCells[r][c] !== 'hard') result[r][c] = 1; // Sol üstü doldur
         }
       }
     }
@@ -522,14 +528,14 @@ export function fixLineContinuity(grid: number[][]): number[][] {
     for (let r = 0; r < rows; r++) {
       for (let c = 1; c < cols - 1; c++) {
         if (result[r][c-1] === 1 && result[r][c+1] === 1 && result[r][c] !== 1) {
-          result[r][c] = 1;
+          if (!protectedCells || protectedCells[r][c] !== 'hard') result[r][c] = 1;
         }
       }
     }
     for (let c = 0; c < cols; c++) {
       for (let r = 1; r < rows - 1; r++) {
         if (result[r-1][c] === 1 && result[r+1][c] === 1 && result[r][c] !== 1) {
-          result[r][c] = 1;
+          if (!protectedCells || protectedCells[r][c] !== 'hard') result[r][c] = 1;
         }
       }
     }
@@ -621,7 +627,7 @@ export function differentiateDuplicateColorNames(colorsMap: Record<number, any>)
  * @param {number[][]} grid - 2D grid
  * @returns {number[][]} Yumuşatılmış grid
  */
-export function smoothJaggedEdges(grid: number[][]): number[][] {
+export function smoothJaggedEdges(grid: number[][], protectedCells?: ('hard'|'soft'|'none')[][]): number[][] {
   try {
     const rows = grid.length;
     const cols = grid[0].length;
@@ -641,12 +647,12 @@ export function smoothJaggedEdges(grid: number[][]): number[][] {
         if (tl !== 0 && br !== 0 && tl === br && tr !== 0 && bl !== 0 && tr === bl && tl !== tr) {
           // Hangi rengin daha baskın/korunan olduğuna karar ver
           if (PROTECTED.has(tl) && !PROTECTED.has(tr)) {
-            result[r][c + 1] = tl; // tr'yi tl yap
+            if (!protectedCells || protectedCells[r][c + 1] !== 'hard') result[r][c + 1] = tl; // tr'yi tl yap
           } else if (PROTECTED.has(tr) && !PROTECTED.has(tl)) {
-            result[r][c] = tr; // tl'yi tr yap
+            if (!protectedCells || protectedCells[r][c] !== 'hard') result[r][c] = tr; // tl'yi tr yap
           } else {
              // İkisi de korunmuyorsa veya ikisi de korunuyorsa rastgele birini doldurarak kavis yap
-             result[r][c + 1] = tl; 
+             if (!protectedCells || protectedCells[r][c + 1] !== 'hard') result[r][c + 1] = tl; 
           }
         }
       }
@@ -668,7 +674,7 @@ export function smoothJaggedEdges(grid: number[][]): number[][] {
  * resmin asıl figürüne ait olmayan hedef renkli arka planları 
  * tespit edip Boş (0) yapar.
  */
-export function removeGridBackground(grid: number[][], targetColorId = 1, foregroundCoverageGrid?: number[][], threshold = 0.30): number[][] {
+export function removeGridBackground(grid: number[][], targetColorId = 1, foregroundCoverageGrid?: number[][], threshold = 0.30, protectedCells?: ('hard'|'soft'|'none')[][]): number[][] {
     const rows = grid.length;
     const cols = grid[0].length;
     const result = grid.map(row => [...row]);
@@ -681,6 +687,7 @@ export function removeGridBackground(grid: number[][], targetColorId = 1, foregr
         for (let c = 0; c < cols; c++) {
             if (r === 0 || r === rows - 1 || c === 0 || c === cols - 1) {
                 if (result[r][c] === 0 || (result[r][c] === targetColorId && (!foregroundCoverageGrid || foregroundCoverageGrid[r][c] < threshold))) {
+                    if (protectedCells && protectedCells[r][c] === 'hard') continue;
                     queue.push([r, c]);
                     visited[r][c] = true;
                     if (result[r][c] === targetColorId) result[r][c] = 0;
@@ -701,6 +708,7 @@ export function removeGridBackground(grid: number[][], targetColorId = 1, foregr
             if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !visited[nr][nc]) {
                 // BFS sadece Boş (0) veya Düşük Kapsamlı Hedef Renklere (1) yayılabilir
                 if (result[nr][nc] === 0 || (result[nr][nc] === targetColorId && (!foregroundCoverageGrid || foregroundCoverageGrid[nr][nc] < threshold))) {
+                    if (protectedCells && protectedCells[nr][nc] === 'hard') continue;
                     visited[nr][nc] = true;
                     if (result[nr][nc] === targetColorId) result[nr][nc] = 0;
                     queue.push([nr, nc]);
@@ -758,24 +766,24 @@ export function applySmartCleaners(
     cleanGrid = cleanIsolatedPixels(cleanGrid, cleanColors, protectedCells, featureConfidenceGrid);
 
     // 4. Kontur sürekliliği düzeltme
-    cleanGrid = fixLineContinuity(cleanGrid);
+    cleanGrid = fixLineContinuity(cleanGrid, protectedCells);
 
     // 5. Zhang-Suen iskeletleştirme (sadece outlineId tanımlıysa ve thinning etkinse)
     if (enableThinning && typeof outlineId === 'number' && outlineId > 0) {
-      cleanGrid = zhangSuenThinning(cleanGrid, outlineId);
+      cleanGrid = zhangSuenThinning(cleanGrid, outlineId, protectedCells);
       // İnceltme algoritması, keskin (V şekilli) iç köşelerde arka plan (0) boşlukları yaratabilir.
       // Bu nedenle inceltme sonrası oluşan bu beyaz delikleri (0) tekrar dolduruyoruz.
       cleanGrid = fillHoles(cleanGrid, protectedCells);
     }
     
     // 6. Çapraz Merdiven Yumuşatma (Anti-aliasing etkisi)
-    cleanGrid = smoothJaggedEdges(cleanGrid);
+    cleanGrid = smoothJaggedEdges(cleanGrid, protectedCells);
 
     // 7. Tekrarlanan renk isimlerini ayırt et
     cleanColors = differentiateDuplicateColorNames(cleanColors);
 
     // 8. Sihirli Değnek ile arka plan beyazlarını kesin olarak yok et
-    cleanGrid = removeGridBackground(cleanGrid, 1, foregroundCoverageGrid, foregroundProtectionThreshold);
+    cleanGrid = removeGridBackground(cleanGrid, 1, foregroundCoverageGrid, foregroundProtectionThreshold, protectedCells);
 
     return { cleanGrid, cleanColors };
   } catch (err) {

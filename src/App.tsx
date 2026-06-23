@@ -155,7 +155,7 @@ export default function App() {
               </ErrorBoundary>
 
               <ErrorBoundary>
-                <AIQESDashboard />
+                <ColorLegend />
               </ErrorBoundary>
               <div className="flex justify-center pt-2 pb-6">
                 <ErrorBoundary>
@@ -163,7 +163,7 @@ export default function App() {
                 </ErrorBoundary>
               </div>
               <ErrorBoundary>
-                <ColorLegend />
+                <AIQESDashboard />
               </ErrorBoundary>
             </main>
           </div>

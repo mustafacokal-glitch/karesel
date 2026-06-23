@@ -238,8 +238,8 @@ export default function ControlPanel() {
         <div className="mb-2">
           {(() => {
             const { rows, cols } = imageAspectRatio
-              ? calculateGridDimensions(miniLevel.value, imageAspectRatio)
-              : calculateGridDimensions(miniLevel.value, null);
+              ? calculateGridDimensions(miniLevel.value, imageAspectRatio, intent)
+              : calculateGridDimensions(miniLevel.value, null, intent);
             const displayGrid = `${cols}x${rows}`;
 
             const recStyle = getRecommendationStyle(miniLevel.value);

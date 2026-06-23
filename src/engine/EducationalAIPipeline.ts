@@ -20,7 +20,7 @@ export class EducationalAIPipeline {
       const diffMap: Record<Difficulty, number> = { easy: 2, balanced: 3, advanced: 4, expert: 5 };
       numericDifficulty = diffMap[difficulty] || 3;
     } else {
-      const diffMap: Record<Difficulty, number> = { easy: 1, balanced: 2, advanced: 3, expert: 3 };
+      const diffMap: Record<Difficulty, number> = { easy: 1, balanced: 2, advanced: 3, expert: 4 };
       numericDifficulty = diffMap[difficulty] || 2;
     }
 

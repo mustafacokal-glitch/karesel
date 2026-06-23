@@ -1,5 +1,5 @@
 
-import { AgeGroup, Difficulty } from './grid/types';
+import { AgeGroup, Difficulty, DIFFICULTY_GRID_PROFILES, EducationalDifficulty } from './grid/types';
 import { ColorInfo } from './color/types';
 
 import { ShapePreservationEngine, PreservationConfig } from './transform/ShapePreservationEngine';
@@ -9,6 +9,8 @@ import { EducationalPaletteOptimizer } from './color/EducationalPaletteOptimizer
 import { AIQESEngine } from './quality/AIQESEngine';
 import { AIQESReport } from './quality/types';
 import { KeyFeaturePreservationEngine } from './transform/KeyFeaturePreservationEngine';
+import { SourceAccentAuditEngine } from './analysis/SourceAccentAuditEngine';
+import { CharacteristicDetailEvaluator, CharacteristicDetailStats } from './quality/CharacteristicDetailEvaluator';
 import { processImageToGrid } from './transform/pixelEngine';
 import { applySmartCleaners } from './grid/gridCleaners';
 import { PIPELINE_CONFIG } from '../config/pipelineConfig';
@@ -45,6 +47,8 @@ export interface OptimizationState {
     colorMap: Record<number, any>;
   };
   report: AIQESReport;
+  characteristicDetailStats?: CharacteristicDetailStats;
+  finalSelectionScore?: number;
 }
 
 export class AIOptimizationLoop {
@@ -54,7 +58,10 @@ export class AIOptimizationLoop {
    */
   public static async optimize(input: OptimizationInput): Promise<OptimizationState> {
     const targetScore = input.targetScore || 85;
-    let bestState: OptimizationState | null = null;
+    let bestAllowedState: OptimizationState | null = null;
+    let fallbackState: OptimizationState | null = null;
+    let closestTargetDiff = Infinity;
+    
     let configs = [];
     if (input.intent === 'pedagogical-fidelity') {
       configs = [
@@ -65,11 +72,11 @@ export class AIOptimizationLoop {
         // 3. Max color detail (No blur, increase colors)
         { medianRadius: 0, highContrastMode: false, maxColorsModifier: 2, difficultyModifier: input.difficulty },
         // 4. Force balanced grid
-        { medianRadius: 0, highContrastMode: false, maxColorsModifier: 0, difficultyModifier: 'balanced' as Difficulty },
+        { medianRadius: 0, highContrastMode: false, maxColorsModifier: -1, difficultyModifier: input.difficulty },
         // 5. Force easy grid + high contrast + reduced colors (Simplest worksheet)
-        { medianRadius: 1, highContrastMode: true, maxColorsModifier: -3, difficultyModifier: 'easy' as Difficulty },
+        { medianRadius: 1, highContrastMode: true, maxColorsModifier: -3, difficultyModifier: input.difficulty },
         // 6. Force advanced grid (Highest recognizable detail)
-        { medianRadius: 2, highContrastMode: false, maxColorsModifier: 0, difficultyModifier: 'advanced' as Difficulty },
+        { medianRadius: 2, highContrastMode: false, maxColorsModifier: 0, difficultyModifier: input.difficulty },
       ];
     } else {
       configs = [
@@ -79,10 +86,10 @@ export class AIOptimizationLoop {
         { medianRadius: 1, highContrastMode: false, maxColorsModifier: 0, difficultyModifier: input.difficulty },
         // Cycle 3: Reduce Colors (Decrease max colors)
         { medianRadius: 1, highContrastMode: false, maxColorsModifier: -3, difficultyModifier: input.difficulty },
-        // Cycle 4: Adjust Grid (Force 'easy' difficulty to lower max bound, or 'advanced' if recognizability is low)
-        { medianRadius: 1, highContrastMode: false, maxColorsModifier: -3, difficultyModifier: 'easy' as Difficulty },
-        // Cycle 5: Improve contrast (High Contrast Mode as last resort)
-        { medianRadius: 2, highContrastMode: true, maxColorsModifier: -5, difficultyModifier: 'easy' as Difficulty }
+        // Cycle 4: Adjust Grid
+        { medianRadius: 1, highContrastMode: false, maxColorsModifier: -3, difficultyModifier: input.difficulty },
+        // Cycle 5: Improve contrast
+        { medianRadius: 2, highContrastMode: true, maxColorsModifier: -5, difficultyModifier: input.difficulty }
       ];
     }
 
@@ -90,6 +97,7 @@ export class AIOptimizationLoop {
     
     // Analyze key features once before the loop
     const featureMask = KeyFeaturePreservationEngine.analyze(input.sourceImageData, input.intent || 'educational');
+    const sourceAccentAudit = SourceAccentAuditEngine.analyze(input.sourceImageData);
 
     for (let cycle = 0; cycle < MAX_CYCLES; cycle++) {
       const config = configs[cycle];
@@ -150,7 +158,8 @@ export class AIOptimizationLoop {
         {
           highContrastMode: config.highContrastMode,
           maxColors: Math.max(baseMaxColors + config.maxColorsModifier, 2),
-          tolerance: input.colorTolerance
+          tolerance: input.colorTolerance,
+          requiredAccentFamilies: input.intent === 'pedagogical-fidelity' ? sourceAccentAudit.requiredAccentFamilies : undefined
         }
       );
 
@@ -242,6 +251,14 @@ export class AIOptimizationLoop {
         }
       });
 
+      const characteristicDetailStats = input.intent === 'pedagogical-fidelity' 
+        ? CharacteristicDetailEvaluator.evaluate(cleanGrid, cleanColors, sourceAccentAudit, input.difficulty as EducationalDifficulty)
+        : undefined;
+
+      const finalSelectionScore = characteristicDetailStats 
+        ? (report.aiqesScore * 0.4) + (characteristicDetailStats.characteristicDetailScore * 0.6)
+        : report.aiqesScore;
+
       const currentState: OptimizationState = {
         cycle: cycle + 1,
         config: { ...config, edgeMode } as any, // Attach edgeMode for tracking
@@ -257,7 +274,9 @@ export class AIOptimizationLoop {
           pixelGrid: cleanGrid,
           colorMap: cleanColors
         },
-        report
+        report,
+        characteristicDetailStats,
+        finalSelectionScore
       };
 
       // Candidate Reporting
@@ -277,21 +296,65 @@ export class AIOptimizationLoop {
           originalSimilarityScore: report.originalSimilarity?.score,
           educationalUsabilityScore: report.educationalUsability?.score,
           printabilityScore: report.printability?.score,
-          finalScore: report.aiqesScore
+          aiqesScore: report.aiqesScore,
+          characteristicDetailScore: currentState.characteristicDetailStats?.characteristicDetailScore,
+          finalSelectionScore: currentState.finalSelectionScore
         });
       }
 
-      // Keep track of the absolute best score
-      if (!bestState || report.aiqesScore > bestState.report.aiqesScore) {
-        bestState = currentState;
+      // Candidate filtering
+      let isAllowed = true;
+      if (input.intent === 'pedagogical-fidelity') {
+        const profile = DIFFICULTY_GRID_PROFILES[input.difficulty as EducationalDifficulty];
+        const majorAxis = Math.max(currentState.metrics.gridWidth, currentState.metrics.gridHeight);
+        if (majorAxis < profile.minSize || majorAxis > profile.maxSize || currentState.metrics.colorCount > profile.maxColors) {
+          isAllowed = false;
+        }
+      }
+
+      if (isAllowed) {
+        if (!bestAllowedState || currentState.finalSelectionScore! > bestAllowedState.finalSelectionScore!) {
+          bestAllowedState = currentState;
+        }
+      } else {
+        if (input.intent === 'pedagogical-fidelity') {
+          const profile = DIFFICULTY_GRID_PROFILES[input.difficulty as EducationalDifficulty];
+          const majorAxis = Math.max(currentState.metrics.gridWidth, currentState.metrics.gridHeight);
+          const diff = Math.abs(majorAxis - profile.targetSize);
+          if (!fallbackState || diff < closestTargetDiff || (diff === closestTargetDiff && currentState.finalSelectionScore! > fallbackState.finalSelectionScore!)) {
+            fallbackState = currentState;
+            closestTargetDiff = diff;
+          }
+        } else {
+          if (!fallbackState || currentState.finalSelectionScore! > fallbackState.finalSelectionScore!) {
+            fallbackState = currentState;
+          }
+        }
       }
 
       // If we hit the target score, we can exit early!
-      if (input.intent !== 'pedagogical-fidelity' && report.aiqesScore >= targetScore) {
+      if (input.intent !== 'pedagogical-fidelity' && report.aiqesScore >= targetScore && isAllowed) {
         break;
       }
     }
 
-    return bestState!;
+    let finalBestState: OptimizationState;
+    if (bestAllowedState) {
+      finalBestState = bestAllowedState;
+      console.info('[KARESEL] Candidate selected', {
+        requestedDifficulty: input.difficulty,
+        selectedGridSize: Math.max(finalBestState.metrics.gridWidth, finalBestState.metrics.gridHeight),
+        selectedColorCount: finalBestState.metrics.colorCount,
+        aiqesScore: finalBestState.report.aiqesScore
+      });
+    } else {
+      finalBestState = fallbackState!;
+      console.warn('[KARESEL] Difficulty fallback used', {
+        requestedDifficulty: input.difficulty,
+        reason: 'No candidate matched strict grid profile bounds'
+      });
+    }
+
+    return finalBestState;
   }
 }

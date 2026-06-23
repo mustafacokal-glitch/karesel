@@ -10,6 +10,7 @@ export interface CacheKeyParams {
   offsetX?: number;
   offsetY?: number;
   intent?: import('../types').ProcessingIntent | string;
+  gridProfileVersion?: string;
 }
 
 export interface CachedResult {
