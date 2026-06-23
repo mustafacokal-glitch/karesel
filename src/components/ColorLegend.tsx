@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import useProjectStore from '../stores/useProjectStore';
 import { PALETTE } from '../engine/color/colorDistance';
+import { normalizeColorEntryName } from '../engine/color/ColorNameResolver';
 
 export default function ColorLegend() {
   const colorMap = useProjectStore((s) => s.colorMap);
@@ -92,7 +93,13 @@ export default function ColorLegend() {
             </button>
           )}
 
-          {colorEntries.map(([id, color]) => (
+          {colorEntries.map(([id, color]) => {
+            const normalizedColor = normalizeColorEntryName(
+              { ...color, id: Number(id) }, 
+              { displayNumber: color?.displayNumber }
+            );
+
+            return (
             <button
               key={id}
               onMouseDown={() => handleStart(id)}
@@ -110,13 +117,13 @@ export default function ColorLegend() {
               }`}
               title={
                 isEditMode
-                  ? `${id} — ${color?.name || id} (Boyamak için tıklayın, değiştirmek için sağ tıklayın veya basılı tutun)`
-                  : `${id} — ${color?.name || id}`
+                  ? `${id} — ${normalizedColor.name} (Boyamak için tıklayın, değiştirmek için sağ tıklayın veya basılı tutun)`
+                  : `${id} — ${normalizedColor.name}`
               }
             >
               <div
                 className="w-7 h-7 rounded-lg border border-gray-300 flex-shrink-0"
-                style={{ backgroundColor: color?.hex || '#ffffff' }}
+                style={{ backgroundColor: normalizedColor.hex || '#ffffff' }}
               />
               <span className="text-[10px] font-extrabold text-gray-700 mt-1 leading-none">
                 {id}
@@ -125,10 +132,10 @@ export default function ColorLegend() {
                 className="text-xs font-bold text-gray-600 mt-1 leading-tight text-center w-full overflow-hidden"
                 style={{ display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
               >
-                {color?.name || ''}
+                {normalizedColor.name}
               </span>
             </button>
-          ))}
+          )})}
         </div>
       )}
 

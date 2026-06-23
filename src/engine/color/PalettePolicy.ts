@@ -1,5 +1,6 @@
 import { ColorInfo } from './types';
 import { getPaletteForDifficulty, PALETTE, rgb2lab, colorDistLABFlat } from './colorDistance';
+import { resolveColorName } from './ColorNameResolver';
 import { PIPELINE_CONFIG } from '../../config/pipelineConfig';
 
 export type PaletteMode = 'educational' | 'fidelity' | 'pedagogical-fidelity';
@@ -97,12 +98,19 @@ export function extractDominantColors(imageData: ImageData, maxColors: number): 
   for (const mc of topColors) {
     const hex = '#' + [mc.r, mc.g, mc.b].map(x => Math.round(x).toString(16).padStart(2, '0')).join('').toUpperCase();
     
+    const resolved = resolveColorName({
+      r: mc.r,
+      g: mc.g,
+      b: mc.b,
+      hex
+    });
+
     extractedPalette.push({
       id: dynamicId++,
       r: mc.r,
       g: mc.g,
       b: mc.b,
-      name: `Fidelity Color ${dynamicId - 1000}`,
+      name: resolved.name,
       hex
     });
   }

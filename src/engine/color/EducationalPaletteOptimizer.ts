@@ -1,6 +1,7 @@
 import { AgeGroup, ColorConfig, ColorInfo, PaletteResult } from './types';
 import { colorDistLAB, PALETTE } from './colorDistance';
 import { classifyPaletteIdFamily, getPaletteIdsForFamily } from './AccentColorFamilies';
+import { normalizeColorEntryName } from './ColorNameResolver';
 
 export class EducationalPaletteOptimizer {
   
@@ -146,8 +147,10 @@ export class EducationalPaletteOptimizer {
       explanation += ` Preserved families: ${requiredFamilies.join(', ')}.`;
     }
 
+    const normalizedPalette = currentColors.map(c => normalizeColorEntryName(c));
+
     return {
-      optimizedPalette: currentColors,
+      optimizedPalette: normalizedPalette,
       originalToOptimizedMap: mapping,
       explanation
     };
