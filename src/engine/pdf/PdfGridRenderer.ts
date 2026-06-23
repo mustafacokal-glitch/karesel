@@ -45,17 +45,17 @@ export class PdfGridRenderer {
       doc.setTextColor(100, 100, 100);
 
       // Top columns (X axis)
+      const coordinateTopY = layout.coordinateTopY ?? (gridY - 2);
       for (let col = 0; col < cols; col++) {
         const cx = gridX + col * cellSize + (cellSize / 2);
-        const cy = gridY - 2;
-        LTRTextRenderer.renderText(doc, String(col + 1), cx, cy, { align: 'center', baseline: 'bottom' });
+        LTRTextRenderer.renderText(doc, String(col + 1), cx, coordinateTopY, { align: 'center', baseline: 'bottom' });
       }
 
       // Left rows (Y axis)
+      const coordinateLeftX = layout.coordinateLeftX ?? (gridX - 2);
       for (let row = 0; row < rows; row++) {
-        const cx = gridX - 2;
         const cy = gridY + row * cellSize + (cellSize / 2);
-        LTRTextRenderer.renderText(doc, String(row + 1), cx, cy, { align: 'right', baseline: 'middle' });
+        LTRTextRenderer.renderText(doc, String(row + 1), coordinateLeftX, cy, { align: 'right', baseline: 'middle' });
       }
     }
 
@@ -63,7 +63,11 @@ export class PdfGridRenderer {
     // e.g. 25x25 -> ~7pt, 40x40 -> ~5pt
     const fontSizePt = Math.max(5.0, Math.min(8.0, cellSize * 1.5));
 
-    // Draw Grid Cells
+    const INNER_GRID_LINE_WIDTH = 0.12;
+    const MAJOR_GRID_LINE_WIDTH = 0.18;
+    const OUTER_BORDER_LINE_WIDTH = 0.25;
+
+    // Pass 1: Draw Fills and Text
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
         const x = gridX + col * cellSize;
@@ -88,21 +92,6 @@ export class PdfGridRenderer {
           doc.rect(x, y, cellSize, cellSize, 'F');
         }
 
-        // Cell Borders
-        doc.setDrawColor(0, 0, 0);
-        
-        // Thicker border on edges
-        if (row === 0 || row === rows - 1 || col === 0 || col === cols - 1) {
-          doc.setLineWidth(0.6);
-        } else if ((row + 1) % 5 === 0 || (col + 1) % 5 === 0) {
-          doc.setLineWidth(0.35); // 5th line separator
-        } else {
-          doc.setLineWidth(0.15); // Normal line
-        }
-
-        doc.rect(x, y, cellSize, cellSize, 'S');
-
-        // Draw Display Number
         if (showNumbers && !isEmpty) {
           const entry = colorMap.get(cellValue);
           if (entry) {
@@ -127,5 +116,28 @@ export class PdfGridRenderer {
         }
       }
     }
+
+    // Pass 2: Draw Grid Lines
+    doc.setDrawColor(0, 0, 0);
+    const gridHeight = rows * cellSize;
+    const gridWidth = cols * cellSize;
+
+    // Inner vertical lines
+    for (let col = 1; col < cols; col++) {
+      const x = gridX + col * cellSize;
+      doc.setLineWidth(col % 5 === 0 ? MAJOR_GRID_LINE_WIDTH : INNER_GRID_LINE_WIDTH);
+      doc.line(x, gridY, x, gridY + gridHeight);
+    }
+
+    // Inner horizontal lines
+    for (let row = 1; row < rows; row++) {
+      const y = gridY + row * cellSize;
+      doc.setLineWidth(row % 5 === 0 ? MAJOR_GRID_LINE_WIDTH : INNER_GRID_LINE_WIDTH);
+      doc.line(gridX, y, gridX + gridWidth, y);
+    }
+
+    // Outer border
+    doc.setLineWidth(OUTER_BORDER_LINE_WIDTH);
+    doc.rect(gridX, gridY, gridWidth, gridHeight, 'S');
   }
 }

@@ -11,6 +11,24 @@ export class PdfQualityReporter {
     const overflowWarnings: string[] = [];
     const criticalWarnings: string[] = [];
 
+    // Check spacing gaps
+    if (layout.coordinateTopY !== undefined && layout.instructionY !== undefined && layout.instructionHeightMm !== undefined) {
+      const instructionToCoordinateGap = layout.coordinateTopY - (layout.instructionY + layout.instructionHeightMm);
+      if (instructionToCoordinateGap < 4.0) {
+        overflowWarnings.push('instruction-coordinate-gap-too-small: Gap between instruction and coordinates is too small.');
+      }
+    }
+
+    if (layout.gridY !== undefined && layout.coordinateTopY !== undefined && layout.coordinateHeaderSizeMm !== undefined) {
+      const coordinateToGridGap = layout.gridY - (layout.coordinateTopY + layout.coordinateHeaderSizeMm);
+      if (coordinateToGridGap < 0.4) {
+        overflowWarnings.push('coordinate-grid-gap-too-small: Gap between coordinates and grid is too small.');
+      }
+      if (coordinateToGridGap > 1.2) {
+        overflowWarnings.push('coordinate-grid-gap-too-large: Gap between coordinates and grid is too large.');
+      }
+    }
+
     // Check bounds
     if (layout.gridX + layout.gridWidthMm > layout.pageWidthMm - layout.marginMm + 1) {
       overflowWarnings.push('Grid overflows page width margin.');
@@ -20,11 +38,26 @@ export class PdfQualityReporter {
     }
     
     if (input.includeLegend) {
-      if (layout.legendX + layout.legendWidthMm > layout.pageWidthMm - layout.marginMm + 1) {
-        overflowWarnings.push('Legend overflows page width margin.');
-      }
-      if (layout.legendY + layout.legendHeightMm > layout.pageHeightMm - layout.marginMm + 1) {
-        overflowWarnings.push('Legend overflows page height margin.');
+      const ll = layout.legendLayout;
+      if (!ll) {
+        overflowWarnings.push('legend-layout-missing: Legend layout is missing.');
+      } else {
+        const usableWidthMm = layout.pageWidthMm - layout.marginMm * 2;
+        if (ll.widthMm > usableWidthMm + 0.1) {
+          overflowWarnings.push('legend-overflow: Legend width exceeds usable page width.');
+        }
+        if (ll.itemWidthMm <= 0) {
+          criticalWarnings.push('legend-item-width-too-small: Legend item width is zero or negative.');
+        }
+        if (ll.y + ll.heightMm > layout.pageHeightMm - 8) {
+          overflowWarnings.push('legend-footer-overlap: Legend bottom overlaps with footer area.');
+        }
+        if (ll.y < layout.gridY + layout.gridHeightMm) {
+          criticalWarnings.push('legend-grid-overlap: Legend overlaps with the grid.');
+        }
+        if (ll.rows * ll.columns < input.colorEntries.length) {
+          criticalWarnings.push('legend-capacity-insufficient: Legend grid cannot hold all colors.');
+        }
       }
     }
 

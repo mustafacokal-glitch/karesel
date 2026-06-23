@@ -1,7 +1,7 @@
 import { AgeGroup, ColorConfig, ColorInfo, PaletteResult } from './types';
 import { colorDistLAB, PALETTE } from './colorDistance';
 import { classifyPaletteIdFamily, getPaletteIdsForFamily } from './AccentColorFamilies';
-import { normalizeColorEntryName } from './ColorNameResolver';
+import { canonicalizePaletteEntries } from './CanonicalPaletteMapper';
 
 export class EducationalPaletteOptimizer {
   
@@ -147,10 +147,52 @@ export class EducationalPaletteOptimizer {
       explanation += ` Preserved families: ${requiredFamilies.join(', ')}.`;
     }
 
-    const normalizedPalette = currentColors.map(c => normalizeColorEntryName(c));
+    const canonicalPalette = canonicalizePaletteEntries(currentColors);
+
+    // Verify required accent families after canonical dedupe
+    for (const family of requiredFamilies) {
+      const hasRep = canonicalPalette.some(c => classifyPaletteIdFamily(c.canonicalPaletteId || c.id) === family);
+      if (!hasRep) {
+        const familyIds = getPaletteIdsForFamily(family);
+        if (familyIds.length > 0) {
+          const repColor = PALETTE.find(p => p.id === familyIds[0]);
+          if (repColor && !canonicalPalette.some(c => (c.canonicalPaletteId || c.id) === repColor.id)) {
+            let replaced = false;
+            // Try to replace the lowest priority non-required color
+            for (let i = canonicalPalette.length - 1; i >= 0; i--) {
+              const cFam = classifyPaletteIdFamily(canonicalPalette[i].canonicalPaletteId || canonicalPalette[i].id);
+              if (!requiredFamilies.includes(cFam) && !baseProtectedIds.includes(canonicalPalette[i].canonicalPaletteId || canonicalPalette[i].id)) {
+                canonicalPalette[i] = { ...repColor, canonicalPaletteId: repColor.id };
+                replaced = true;
+                break;
+              }
+            }
+            if (!replaced) {
+              if (canonicalPalette.length >= maxColors) {
+                for (let i = canonicalPalette.length - 1; i >= 0; i--) {
+                  if (![1, 24].includes(canonicalPalette[i].canonicalPaletteId || canonicalPalette[i].id)) {
+                    canonicalPalette[i] = { ...repColor, canonicalPaletteId: repColor.id };
+                    replaced = true;
+                    break;
+                  }
+                }
+              }
+              if (!replaced) {
+                canonicalPalette.push({ ...repColor, canonicalPaletteId: repColor.id });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    let finalPalette = canonicalPalette;
+    if (finalPalette.length > maxColors) {
+      finalPalette = finalPalette.slice(0, maxColors);
+    }
 
     return {
-      optimizedPalette: normalizedPalette,
+      optimizedPalette: finalPalette,
       originalToOptimizedMap: mapping,
       explanation
     };

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { calculateGridDimensions } from '../utils/gridDimensions';
 import { ProjectStore, AIQESReport, ProcessingMode, ProcessingIntent, GridDimensions, PixelGrid, ColorMap, ColorMapEntry } from '../types';
+import { mapColorToCanonicalPalette } from '../engine/color/CanonicalPaletteMapper';
 
 const useProjectStore = create<ProjectStore>((set) => ({
   // Pipeline Modu
@@ -185,10 +186,20 @@ const useProjectStore = create<ProjectStore>((set) => ({
 
     const newColorMap = { ...state.colorMap };
     if (newColorMap[colorId]) {
+      const match = mapColorToCanonicalPalette(newColorData);
+      const p = match.paletteColor;
+      const currentEntry = newColorMap[colorId];
+
       newColorMap[colorId] = {
-        ...newColorMap[colorId],
-        ...newColorData,
-        id: Number(colorId)
+        ...currentEntry,
+        id: Number(colorId),
+        displayNumber: currentEntry.displayNumber || Number(colorId),
+        canonicalPaletteId: match.canonicalPaletteId,
+        r: p.r,
+        g: p.g,
+        b: p.b,
+        hex: p.hex,
+        name: p.name
       };
     }
     return {

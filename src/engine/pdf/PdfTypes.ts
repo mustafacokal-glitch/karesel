@@ -33,6 +33,36 @@ export interface PdfWorksheetInput {
   createdAt?: string;
 }
 
+export interface PdfLegendLayout {
+  x: number;
+  y: number;
+  widthMm: number;
+  heightMm: number;
+
+  titleHeightMm: number;
+  rowHeightMm: number;
+
+  columns: number;
+  rows: number;
+  itemWidthMm: number;
+
+  swatchSizeMm: number;
+  numberWidthMm: number;
+  gapMm: number;
+
+  mode: 'full-width-bottom' | 'compact-bottom' | 'fallback';
+}
+
+export const PDF_LAYOUT_SPACING = {
+  headerToMetaMm: 3,
+  metaToInstructionMm: 5,
+  instructionToCoordinatesMm: 4.5,
+  columnCoordinatesToGridMm: 0.75,
+  rowCoordinatesToGridMm: 1.2,
+  gridToLegendMm: 6,
+  footerSafetyMm: 8,
+};
+
 export interface PdfLayoutResult {
   orientation: PdfOrientation;
 
@@ -57,11 +87,23 @@ export interface PdfLayoutResult {
   legendWidthMm: number;
   legendHeightMm: number;
   legendColumns: number;
+  legendLayout?: PdfLegendLayout;
 
   originalImageX?: number;
   originalImageY?: number;
   originalImageWidthMm?: number;
   originalImageHeightMm?: number;
+
+  titleY?: number;
+  subtitleY?: number;
+  metaY?: number;
+  instructionY?: number;
+  instructionHeightMm?: number;
+
+  coordinateTopY?: number;
+  coordinateLeftX?: number;
+
+  gridBlockY?: number;
 
   warningLevel: 'none' | 'minor' | 'critical';
   warnings: string[];

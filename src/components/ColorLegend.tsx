@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import useProjectStore from '../stores/useProjectStore';
 import { PALETTE } from '../engine/color/colorDistance';
-import { normalizeColorEntryName } from '../engine/color/ColorNameResolver';
 
 export default function ColorLegend() {
   const colorMap = useProjectStore((s) => s.colorMap);
@@ -94,10 +93,10 @@ export default function ColorLegend() {
           )}
 
           {colorEntries.map(([id, color]) => {
-            const normalizedColor = normalizeColorEntryName(
-              { ...color, id: Number(id) }, 
-              { displayNumber: color?.displayNumber }
-            );
+            const normalizedColor = {
+              name: color.name || `Renk ${id}`,
+              hex: color.hex || '#ffffff'
+            };
 
             return (
             <button

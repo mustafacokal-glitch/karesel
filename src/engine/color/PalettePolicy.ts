@@ -1,7 +1,7 @@
 import { ColorInfo } from './types';
 import { getPaletteForDifficulty, PALETTE, rgb2lab, colorDistLABFlat } from './colorDistance';
-import { resolveColorName } from './ColorNameResolver';
 import { PIPELINE_CONFIG } from '../../config/pipelineConfig';
+import { mapColorToCanonicalPalette, canonicalizePaletteEntries } from './CanonicalPaletteMapper';
 
 export type PaletteMode = 'educational' | 'fidelity' | 'pedagogical-fidelity';
 
@@ -88,54 +88,41 @@ export function extractDominantColors(imageData: ImageData, maxColors: number): 
     }
   }
   
-  // Re-sort after merge
-  mergedColors.sort((a, b) => b.weight - a.weight);
-  const topColors = mergedColors.slice(0, maxColors);
-  
-  const extractedPalette: ColorInfo[] = [];
-  let dynamicId = 1000;
-  
-  for (const mc of topColors) {
-    const hex = '#' + [mc.r, mc.g, mc.b].map(x => Math.round(x).toString(16).padStart(2, '0')).join('').toUpperCase();
-    
-    const resolved = resolveColorName({
-      r: mc.r,
-      g: mc.g,
-      b: mc.b,
-      hex
-    });
+  // Snap to canonical palette and aggregate weights
+  const canonicalMap = new Map<number, { color: ColorInfo; totalWeight: number }>();
 
-    extractedPalette.push({
-      id: dynamicId++,
-      r: mc.r,
-      g: mc.g,
-      b: mc.b,
-      name: resolved.name,
-      hex
-    });
+  for (const mc of mergedColors) {
+    const hex = '#' + [mc.r, mc.g, mc.b].map(x => Math.round(x).toString(16).padStart(2, '0')).join('').toUpperCase();
+    const match = mapColorToCanonicalPalette({ r: mc.r, g: mc.g, b: mc.b, hex });
+    
+    const canonicalId = match.canonicalPaletteId;
+    if (canonicalMap.has(canonicalId)) {
+      canonicalMap.get(canonicalId)!.totalWeight += mc.weight;
+    } else {
+      canonicalMap.set(canonicalId, {
+        color: { ...match.paletteColor, canonicalPaletteId: canonicalId },
+        totalWeight: mc.weight
+      });
+    }
   }
+
+  // Sort by aggregated weight
+  const sortedCanonical = Array.from(canonicalMap.values()).sort((a, b) => b.totalWeight - a.totalWeight);
   
-  // Ensure critical colors (Black and White) are always present if not already matched closely
+  let extractedPalette = sortedCanonical.slice(0, maxColors).map(sc => sc.color);
+  
+  // Ensure critical colors (Black and White) are always present if not already matched
   const black = PALETTE.find(p => p.id === 24)!;
   const white = PALETTE.find(p => p.id === 1)!;
   
-  const [bl, ba, bb] = rgb2lab(black.r, black.g, black.b);
-  const [wl, wa, wb] = rgb2lab(white.r, white.g, white.b);
+  const hasBlack = extractedPalette.some(p => p.id === 24 || p.canonicalPaletteId === 24);
+  const hasWhite = extractedPalette.some(p => p.id === 1 || p.canonicalPaletteId === 1);
   
-  let hasBlack = false;
-  let hasWhite = false;
-  
-  for (const p of extractedPalette) {
-    const [l, a, b_lab] = rgb2lab(p.r, p.g, p.b);
-    if (colorDistLABFlat(l, a, b_lab, bl, ba, bb, 1.0) < 300) hasBlack = true;
-    if (colorDistLABFlat(l, a, b_lab, wl, wa, wb, 1.0) < 300) hasWhite = true;
-  }
-  
-  if (!hasBlack) extractedPalette.push(black);
-  if (!hasWhite) extractedPalette.push(white);
+  if (!hasBlack) extractedPalette.push({ ...black, canonicalPaletteId: 24 });
+  if (!hasWhite) extractedPalette.push({ ...white, canonicalPaletteId: 1 });
   
   // Keep within bounds
-  return extractedPalette.slice(0, maxColors);
+  return canonicalizePaletteEntries(extractedPalette).slice(0, maxColors);
 }
 
 export function getPaletteFromPolicy(options: PalettePolicyOptions, imageData?: ImageData): ColorInfo[] {

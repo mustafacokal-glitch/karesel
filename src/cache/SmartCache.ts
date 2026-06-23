@@ -1,5 +1,7 @@
 import { AIQESReport, ColorMap, GridDimensions, PixelGrid } from '../types';
 
+export const CANONICAL_PALETTE_VERSION = 'canonical-24-palette-v1';
+
 export interface CacheKeyParams {
   imageHash: string;
   gridSize: { rows: number; cols: number };
@@ -11,6 +13,7 @@ export interface CacheKeyParams {
   offsetY?: number;
   intent?: import('../types').ProcessingIntent | string;
   gridProfileVersion?: string;
+  paletteVersion?: string;
 }
 
 export interface CachedResult {

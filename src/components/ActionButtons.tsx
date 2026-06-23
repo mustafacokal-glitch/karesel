@@ -4,11 +4,12 @@ import { removeBackground } from '../engine/transform/bgRemover';
 import { PALETTE, colorDistLAB } from '../engine/color/colorDistance';
 import { applySmartCleaners, removeGridBackground } from '../engine/grid/gridCleaners';
 import { WorkerManager } from '../workers/WorkerManager';
+import { finalizeDisplayColorMap } from '../engine/color/DisplayColorMapFinalizer';
 import { calculateGridDimensions } from '../utils/gridDimensions';
 import { downloadGridAsPNG } from '../utils/pngExporter';
 import { launchConfetti } from '../utils/confetti';
 import { PIPELINE_CONFIG } from '../config/pipelineConfig';
-import { SmartCache } from '../cache/SmartCache';
+import { SmartCache, CANONICAL_PALETTE_VERSION } from '../cache/SmartCache';
 import { ImageProcessingError, PDFGenerationError, KareselError } from '../errors/KareselErrors';
 import { EducationalDifficulty, DIFFICULTY_GRID_PROFILES, DIFFICULTY_GRID_PROFILE_VERSION } from '../engine/grid/types';
 
@@ -128,41 +129,6 @@ function reduceColors(grid: number[][], colorMap: Record<number, any>, maxColors
   return { reducedGrid, reducedColorMap };
 }
 
-/**
- * Global PALETTE ID'lerini sıralı (1, 2, 3...) ID'lere dönüştürür.
- */
-function sequentializeColors(grid: number[][], colorMap: Record<number, any>) {
-  const usedIds = new Set<number>();
-  for (const row of grid) {
-    for (const cellId of row) {
-      if (cellId && cellId !== 0) {
-        usedIds.add(cellId);
-      }
-    }
-  }
-
-  const sortedIds = Array.from(usedIds).sort((a, b) => a - b);
-  const sequentialColorMap: Record<number, any> = {};
-  const remapping: Record<number, number> = {};
-
-  let seqId = 1;
-  for (const oldId of sortedIds) {
-    remapping[oldId] = seqId;
-    if (colorMap[oldId]) {
-      sequentialColorMap[seqId] = { ...colorMap[oldId], id: seqId };
-    }
-    seqId++;
-  }
-
-  const sequentialGrid = grid.map(row =>
-    row.map(cellId => {
-      if (!cellId || cellId === 0) return 0;
-      return remapping[cellId];
-    })
-  );
-
-  return { sequentialGrid, sequentialColorMap };
-}
 
 export default function ActionButtons() {
   const isEditMode = useProjectStore((s) => s.isEditMode);
@@ -258,7 +224,8 @@ export default function ActionButtons() {
         processingMode,
         intent: useProjectStore.getState().intent,
         offsetX: useProjectStore.getState().offsetX,
-        offsetY: useProjectStore.getState().offsetY
+        offsetY: useProjectStore.getState().offsetY,
+        paletteVersion: CANONICAL_PALETTE_VERSION
       });
 
       const cachedResult = SmartCache.get(cacheKey);
@@ -351,11 +318,15 @@ export default function ActionButtons() {
 
         const aiResult = await WorkerManager.runAIPipeline(cleanData, ageGroup as any, diff as any, useProjectStore.getState().colorTolerance, useProjectStore.getState().offsetX, useProjectStore.getState().offsetY, useProjectStore.getState().intent);
 
-        const { sequentialGrid, sequentialColorMap } = sequentializeColors(aiResult.pixelGrid, aiResult.colorMap);
+        const { displayGrid, displayColorMap, additionalRemappedGrids } = finalizeDisplayColorMap(
+          aiResult.pixelGrid, 
+          aiResult.colorMap,
+          aiResult.solutionGrid ? [aiResult.solutionGrid] : undefined
+        );
         
-        let finalGrid = sequentialGrid;
+        let finalGrid = displayGrid;
         let whiteSeqId = null;
-        for (const [id, colorObj] of Object.entries(sequentialColorMap)) {
+        for (const [id, colorObj] of Object.entries(displayColorMap)) {
           if (colorObj.hex === '#FFFFFF') {
             whiteSeqId = Number(id);
             break;
@@ -365,13 +336,19 @@ export default function ActionButtons() {
           finalGrid = removeGridBackground(finalGrid, whiteSeqId);
         }
 
+        let solGrid = finalGrid;
+        if (additionalRemappedGrids && additionalRemappedGrids.length > 0) {
+          solGrid = additionalRemappedGrids[0];
+          if (whiteSeqId !== null) solGrid = removeGridBackground(solGrid, whiteSeqId);
+        }
+
         useProjectStore.getState().setGridDimensions({
           rows: aiResult.gridDimensions.height || aiResult.gridDimensions.rows,
           cols: aiResult.gridDimensions.width || aiResult.gridDimensions.cols
         });
         setPixelGrid(finalGrid);
-        setSolutionGrid(finalGrid);
-        setColorMap(sequentialColorMap);
+        setSolutionGrid(solGrid);
+        setColorMap(displayColorMap);
         setShowSolution(true);
         useProjectStore.getState().setAiqesReport(aiResult.aiqesReport);
         useProjectStore.getState().setDownloadProgressText(null);
@@ -379,8 +356,8 @@ export default function ActionButtons() {
         const endTime = performance.now();
         SmartCache.set(cacheKey, {
           pixelGrid: finalGrid,
-          solutionGrid: finalGrid,
-          colorMap: sequentialColorMap,
+          solutionGrid: solGrid,
+          colorMap: displayColorMap,
           aiqesReport: aiResult.aiqesReport,
           gridDimensions: {
             rows: aiResult.gridDimensions.height || aiResult.gridDimensions.rows,
@@ -410,14 +387,14 @@ export default function ActionButtons() {
         const finalCleanGrid = postCleanResult.cleanGrid;
         const finalCleanColors = postCleanResult.cleanColors;
 
-        // 6. Renkleri sırala (Sequentialize)
-        const { sequentialGrid, sequentialColorMap } = sequentializeColors(finalCleanGrid, finalCleanColors);
+        // 6. Renkleri sırala ve kanonize et
+        const { displayGrid, displayColorMap } = finalizeDisplayColorMap(finalCleanGrid, finalCleanColors);
 
         // 7. SON TEMİZLİK: Gürültü filtrelerinden (reduceColors vs.) geçtikten sonra 
         // yanlışlıkla Beyaz'a (#FFFFFF) yuvarlanmış ve kenara dokunan tüm arka plan lekelerini temizle
-        let finalGrid = sequentialGrid;
+        let finalGrid = displayGrid;
         let whiteSeqId = null;
-        for (const [id, colorObj] of Object.entries(sequentialColorMap)) {
+        for (const [id, colorObj] of Object.entries(displayColorMap)) {
           if (colorObj.hex === '#FFFFFF') {
             whiteSeqId = Number(id);
             break;
@@ -431,14 +408,14 @@ export default function ActionButtons() {
         // 8. Store'a kaydet
         setPixelGrid(finalGrid);
         setSolutionGrid(finalGrid); // Çözüm anahtarı = temizlenmiş + renk azaltılmış grid
-        setColorMap(sequentialColorMap);
+        setColorMap(displayColorMap);
         setShowSolution(true);
 
         const endTime = performance.now();
         SmartCache.set(cacheKey, {
           pixelGrid: finalGrid,
           solutionGrid: finalGrid,
-          colorMap: sequentialColorMap
+          colorMap: displayColorMap
         }, endTime - startTime);
         SmartCache.printMetrics();
       }

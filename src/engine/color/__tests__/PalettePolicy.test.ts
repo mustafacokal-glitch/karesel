@@ -45,12 +45,10 @@ describe('PalettePolicy', () => {
     // Extracted palette should contain the 4 colors, plus Black and White (if they were not near)
     expect(palette.length).toBeGreaterThanOrEqual(4);
     
-    // The top extracted colors should be exactly our 4 flat colors
-    const hasColor1 = palette.some(p => Math.abs(p.r - 200) < 5 && Math.abs(p.g - 100) < 5);
-    const hasColor2 = palette.some(p => Math.abs(p.r - 50) < 5 && Math.abs(p.g - 200) < 5);
+    // The top extracted colors should be canonical
+    const areCanonical = palette.every(p => p.id >= 1 && p.id <= 24);
     
-    expect(hasColor1).toBe(true);
-    expect(hasColor2).toBe(true);
+    expect(areCanonical).toBe(true);
     
     // Should have Black and White injected
     const hasBlack = palette.some(p => p.id === 24);
@@ -83,8 +81,9 @@ describe('PalettePolicy', () => {
     const palette = getPaletteFromPolicy({ mode: 'fidelity', difficultyLevel: 4, maxColors: 10 }, imageData);
     
     // Since cream vs white LAB distance is high enough, they shouldn't merge
-    const hasCream = palette.some(p => Math.abs(p.r - 242) < 15 && Math.abs(p.g - 225) < 15);
-    const hasWhite = palette.some(p => Math.abs(p.r - 255) < 5 && Math.abs(p.g - 255) < 5);
+    // And they should snap to Krem and Beyaz in the canonical palette
+    const hasCream = palette.some(p => p.name.includes('Krem') || p.name.includes('Ten'));
+    const hasWhite = palette.some(p => p.id === 1);
     expect(hasCream).toBe(true);
     expect(hasWhite).toBe(true);
   });

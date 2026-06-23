@@ -9,8 +9,12 @@ export class PdfWorksheetRenderer {
     layout: PdfLayoutResult,
     isStudentPage: boolean
   ) {
-    const { headerX, headerY, pageWidthMm, marginMm } = layout;
+    const { headerX, pageWidthMm, marginMm } = layout;
     const rightMargin = pageWidthMm - marginMm;
+
+    const titleY = layout.titleY ?? (layout.headerY + 8);
+    const subtitleY = layout.subtitleY ?? (layout.headerY + 14);
+    const metaY = layout.metaY ?? (layout.headerY + 22);
 
     // Title
     doc.setFont('Roboto', 'bold');
@@ -20,35 +24,44 @@ export class PdfWorksheetRenderer {
       ? (input.title || 'KARESEL KODLAMA ÇALIŞMA KAĞIDI')
       : 'ÖĞRETMEN ÇÖZÜM ANAHTARI';
     
-    LTRTextRenderer.renderText(doc, title, pageWidthMm / 2, headerY + 8, { align: 'center' });
+    LTRTextRenderer.renderText(doc, title, pageWidthMm / 2, titleY, { align: 'center' });
 
     // Subheader
     doc.setFont('Roboto', 'normal');
     doc.setFontSize(10);
-    if (isStudentPage) {
-      const modeLevelText = `${input.modeLabel || 'Eğitsel Yapay Zeka'} - ${input.difficultyLabel || 'Orta'}`;
-      LTRTextRenderer.renderText(doc, modeLevelText, pageWidthMm / 2, headerY + 14, { align: 'center' });
+    const modeLevelText = `${input.modeLabel || 'Eğitsel Yapay Zeka'} - ${input.difficultyLabel || 'Orta'}`;
+    LTRTextRenderer.renderText(doc, modeLevelText, pageWidthMm / 2, subtitleY, { align: 'center' });
 
-      // Student info row
-      const infoY = headerY + 22;
-      LTRTextRenderer.renderText(doc, 'Adı Soyadı: ...................................................', headerX, infoY);
-      LTRTextRenderer.renderText(doc, 'Sınıfı: ........   Tarih: ..../..../........', rightMargin, infoY, { align: 'right' });
-    } else {
-      LTRTextRenderer.renderText(doc, 'Bu sayfa öğretmen kontrolü içindir. Öğrenci sayfasıyla aynı renk kodlarını kullanır.', pageWidthMm / 2, headerY + 14, { align: 'center' });
+    // Student info row
+    if (isStudentPage) {
+      doc.setFont('Roboto', 'normal');
+      doc.setFontSize(10);
+      LTRTextRenderer.renderText(doc, 'Adı Soyadı: ...................................................', headerX, metaY);
+      LTRTextRenderer.renderText(doc, 'Sınıfı: ........   Tarih: ..../..../........', rightMargin, metaY, { align: 'right' });
     }
   }
 
   private static renderInstruction(
     doc: jsPDF,
     _input: PdfWorksheetInput,
-    layout: PdfLayoutResult
+    layout: PdfLayoutResult,
+    isStudentPage: boolean
   ) {
-    const instructionY = layout.gridY - 4; // Just above the grid
-    if (instructionY > layout.headerY + layout.headerHeightMm) {
+    const instructionY = layout.instructionY ?? (layout.gridY - 4);
+    if (instructionY > layout.headerY + 15) {
       doc.setFont('Roboto', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(50, 50, 50);
-      LTRTextRenderer.renderText(doc, 'Yönerge: Aşağıdaki kareleri renk tablosundaki numaralara göre boya.', layout.headerX, instructionY);
+      
+      const text = isStudentPage
+        ? 'Yönerge: Aşağıdaki kareleri renk tablosundaki numaralara göre boya.'
+        : 'Bu sayfa öğretmen kontrolü içindir. Öğrenci sayfasıyla aynı renk kodlarını kullanır.';
+      
+      if (isStudentPage) {
+        LTRTextRenderer.renderText(doc, text, layout.headerX, instructionY);
+      } else {
+        LTRTextRenderer.renderText(doc, text, layout.pageWidthMm / 2, instructionY, { align: 'center' });
+      }
     }
   }
 
@@ -71,7 +84,7 @@ export class PdfWorksheetRenderer {
     layout: PdfLayoutResult
   ): void {
     this.renderHeaderAndInfo(doc, input, layout, true);
-    this.renderInstruction(doc, input, layout);
+    this.renderInstruction(doc, input, layout, true);
     this.renderFooter(doc, input, layout);
   }
 
@@ -81,6 +94,7 @@ export class PdfWorksheetRenderer {
     layout: PdfLayoutResult
   ): void {
     this.renderHeaderAndInfo(doc, input, layout, false);
+    this.renderInstruction(doc, input, layout, false);
     
     // Render original image if requested and layout allows
     if (input.includeOriginalReference && input.originalImageDataUrl && layout.originalImageWidthMm && layout.originalImageHeightMm) {

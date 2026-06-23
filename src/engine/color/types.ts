@@ -18,6 +18,8 @@ export interface ColorInfo {
   b: number;
   name: string;
   hex: string;
+  canonicalPaletteId?: number;
+  displayNumber?: number;
 }
 
 export interface PaletteResult {
