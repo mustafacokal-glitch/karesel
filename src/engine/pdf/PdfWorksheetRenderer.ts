@@ -26,11 +26,7 @@ export class PdfWorksheetRenderer {
     
     LTRTextRenderer.renderText(doc, title, pageWidthMm / 2, titleY, { align: 'center' });
 
-    // Subheader
-    doc.setFont('Roboto', 'normal');
-    doc.setFontSize(10);
-    const modeLevelText = `${input.modeLabel || 'Eğitsel Yapay Zeka'} - ${input.difficultyLabel || 'Orta'}`;
-    LTRTextRenderer.renderText(doc, modeLevelText, pageWidthMm / 2, subtitleY, { align: 'center' });
+    // Subheader removed as requested
 
     // Student info row
     if (isStudentPage) {

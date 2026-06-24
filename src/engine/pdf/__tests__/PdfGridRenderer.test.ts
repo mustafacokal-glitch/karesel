@@ -74,21 +74,23 @@ describe('PdfGridRenderer', () => {
       expect(y).toBeGreaterThanOrEqual(50);
     });
 
-    // Check column coordinate Y: must be layout.coordinateTopY (45) exactly
-    const colCoords = textMock.mock.calls.filter(call => (call[0] === '1' || call[0] === '2') && call[2] === 45);
+    const expectedColumnLabelY = 50 - PdfGridRenderer.PDF_GRID_RENDERING_OFFSETS.columnLabelToGridGapMm;
+    // Check column coordinate Y: must be gridY - 0.75 exactly
+    const colCoords = textMock.mock.calls.filter(call => (call[0] === '1' || call[0] === '2') && call[2] === expectedColumnLabelY);
     expect(colCoords.length).toBeGreaterThanOrEqual(2);
     colCoords.forEach((call) => {
       const cy = call[2];
-      expect(cy).toBe(45);
+      expect(cy).toBe(expectedColumnLabelY);
       expect(cy).toBeLessThan(50); // Above gridY
     });
 
-    // Check row coordinate X: must be layout.coordinateLeftX (15), which is to the left of gridX (20)
-    const rowCoords = textMock.mock.calls.filter(call => call[1] === 15);
+    const expectedRowLabelX = 20 - PdfGridRenderer.PDF_GRID_RENDERING_OFFSETS.rowLabelToGridGapMm;
+    // Check row coordinate X: must be gridX - 1.2, which is to the left of gridX (20)
+    const rowCoords = textMock.mock.calls.filter(call => call[1] === expectedRowLabelX);
     expect(rowCoords.length).toBe(2);
     rowCoords.forEach((call) => {
       const cx = call[1];
-      expect(cx).toBe(15);
+      expect(cx).toBe(expectedRowLabelX);
       expect(cx).toBeLessThan(20); // Left of gridX
     });
   });

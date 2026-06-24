@@ -169,8 +169,8 @@ describe('PdfLayoutEngine', () => {
     const instructionToCoordinateGap = layout.coordinateTopY! - (layout.instructionY! + layout.instructionHeightMm!);
     expect(instructionToCoordinateGap).toBeGreaterThanOrEqual(4.0);
 
-    // coordinate-grid gap >= 0.4 mm
-    const coordinateToGridGap = layout.gridY - (layout.coordinateTopY! + layout.coordinateHeaderSizeMm);
+    // coordinate-grid gap is simply gridY - coordinateTopY, which should be >= 0.75
+    const coordinateToGridGap = layout.gridY - layout.coordinateTopY!;
     expect(coordinateToGridGap).toBeGreaterThanOrEqual(0.4);
 
     // legend does not overlap grid Y
@@ -201,7 +201,7 @@ describe('PdfLayoutEngine', () => {
     expect(layout.instructionY!).toBeLessThan(layout.coordinateTopY!);
     expect(layout.coordinateTopY!).toBeLessThan(layout.gridY);
 
-    const coordinateToGridGap = layout.gridY - (layout.coordinateTopY! + layout.coordinateHeaderSizeMm);
+    const coordinateToGridGap = layout.gridY - layout.coordinateTopY!;
     expect(coordinateToGridGap).toBeGreaterThanOrEqual(0.4);
   });
 

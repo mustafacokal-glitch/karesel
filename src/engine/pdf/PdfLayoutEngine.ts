@@ -86,7 +86,8 @@ export class PdfLayoutEngine {
     
     let instructionToCoordMm = PDF_LAYOUT_SPACING.instructionToCoordinatesMm; // 4.5
     let coordinateTopY = instructionY + instructionHeightMm + instructionToCoordMm;
-    let gridY = coordinateTopY + coordinateHeaderSizeMm + (params.includeCoordinates ? PDF_LAYOUT_SPACING.columnCoordinatesToGridMm : 0);
+    // We don't add coordinateHeaderSizeMm here because we want the grid to be close to the text
+    let gridY = coordinateTopY + (params.includeCoordinates ? PDF_LAYOUT_SPACING.columnCoordinatesToGridMm : 0);
 
     let availableGridWidthMm = pageWidthMm - marginMm * 2;
 
@@ -100,14 +101,14 @@ export class PdfLayoutEngine {
       // Dynamic gap calculation based on tightness
       let testGap = 3.5;
       const testCoordY = instructionY + instructionHeightMm + testGap;
-      const testGridY = testCoordY + coordinateHeaderSizeMm + (params.includeCoordinates ? PDF_LAYOUT_SPACING.columnCoordinatesToGridMm : 0);
+      const testGridY = testCoordY + (params.includeCoordinates ? PDF_LAYOUT_SPACING.columnCoordinatesToGridMm : 0);
       const testAvailableHeight = pageHeightMm - marginMm - testGridY - (testLegendHeight + PDF_LAYOUT_SPACING.gridToLegendMm + extraSafety);
       const testCellSize = testAvailableHeight / params.gridHeight;
       
       if (testCellSize < 4.0) {
         testGap = 3.0;
         const nextCoordY = instructionY + instructionHeightMm + 3.0;
-        const nextGridY = nextCoordY + coordinateHeaderSizeMm + (params.includeCoordinates ? PDF_LAYOUT_SPACING.columnCoordinatesToGridMm : 0);
+        const nextGridY = nextCoordY + (params.includeCoordinates ? PDF_LAYOUT_SPACING.columnCoordinatesToGridMm : 0);
         const nextAvailableHeight = pageHeightMm - marginMm - nextGridY - (testLegendHeight + PDF_LAYOUT_SPACING.gridToLegendMm + extraSafety);
         if (nextAvailableHeight / params.gridHeight < 4.0) {
           testGap = 2.5;
@@ -116,7 +117,7 @@ export class PdfLayoutEngine {
       
       instructionToCoordMm = testGap;
       coordinateTopY = instructionY + instructionHeightMm + instructionToCoordMm;
-      gridY = coordinateTopY + coordinateHeaderSizeMm + (params.includeCoordinates ? PDF_LAYOUT_SPACING.columnCoordinatesToGridMm : 0);
+      gridY = coordinateTopY + (params.includeCoordinates ? PDF_LAYOUT_SPACING.columnCoordinatesToGridMm : 0);
     }
 
     const headerHeightMm = gridY - marginMm;
@@ -186,7 +187,7 @@ export class PdfLayoutEngine {
       
       instructionToCoordMm = PDF_LAYOUT_SPACING.instructionToCoordinatesMm;
       coordinateTopY = instructionY + instructionHeightMm + instructionToCoordMm;
-      gridY = coordinateTopY + coordinateHeaderSizeMm + (params.includeCoordinates ? PDF_LAYOUT_SPACING.columnCoordinatesToGridMm : 0);
+      gridY = coordinateTopY + (params.includeCoordinates ? PDF_LAYOUT_SPACING.columnCoordinatesToGridMm : 0);
 
       if (!isPortrait) {
         titleY = marginMm + 4;
@@ -196,14 +197,14 @@ export class PdfLayoutEngine {
         
         let testGap = 3.5;
         const testCoordY = instructionY + instructionHeightMm + testGap;
-        const testGridY = testCoordY + coordinateHeaderSizeMm + (params.includeCoordinates ? PDF_LAYOUT_SPACING.columnCoordinatesToGridMm : 0);
+        const testGridY = testCoordY + (params.includeCoordinates ? PDF_LAYOUT_SPACING.columnCoordinatesToGridMm : 0);
         const testAvailableHeight = pageHeightMm - marginMm - testGridY - (testLegendHeight + PDF_LAYOUT_SPACING.gridToLegendMm + testExtraSafety);
         const testCellSize = testAvailableHeight / params.gridHeight;
         
         if (testCellSize < 4.0) {
           testGap = 3.0;
           const nextCoordY = instructionY + instructionHeightMm + 3.0;
-          const nextGridY = nextCoordY + coordinateHeaderSizeMm + (params.includeCoordinates ? PDF_LAYOUT_SPACING.columnCoordinatesToGridMm : 0);
+          const nextGridY = nextCoordY + (params.includeCoordinates ? PDF_LAYOUT_SPACING.columnCoordinatesToGridMm : 0);
           const nextAvailableHeight = pageHeightMm - marginMm - nextGridY - (testLegendHeight + PDF_LAYOUT_SPACING.gridToLegendMm + testExtraSafety);
           if (nextAvailableHeight / params.gridHeight < 4.0) {
             testGap = 2.5;
@@ -212,7 +213,7 @@ export class PdfLayoutEngine {
         
         instructionToCoordMm = testGap;
         coordinateTopY = instructionY + instructionHeightMm + instructionToCoordMm;
-        gridY = coordinateTopY + coordinateHeaderSizeMm + (params.includeCoordinates ? PDF_LAYOUT_SPACING.columnCoordinatesToGridMm : 0);
+        gridY = coordinateTopY + (params.includeCoordinates ? PDF_LAYOUT_SPACING.columnCoordinatesToGridMm : 0);
       }
 
       availableGridWidthMm = pageWidthMm - marginMm * 2;

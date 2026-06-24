@@ -16,6 +16,11 @@ export class PdfGridRenderer {
     return value == null || value === 0;
   }
 
+  public static readonly PDF_GRID_RENDERING_OFFSETS = {
+    columnLabelToGridGapMm: 0.75,
+    rowLabelToGridGapMm: 1.2,
+  };
+
   public static renderPdfGrid(
     doc: jsPDF,
     params: {
@@ -45,17 +50,17 @@ export class PdfGridRenderer {
       doc.setTextColor(100, 100, 100);
 
       // Top columns (X axis)
-      const coordinateTopY = layout.coordinateTopY ?? (gridY - 2);
+      const columnLabelY = gridY - this.PDF_GRID_RENDERING_OFFSETS.columnLabelToGridGapMm;
       for (let col = 0; col < cols; col++) {
         const cx = gridX + col * cellSize + (cellSize / 2);
-        LTRTextRenderer.renderText(doc, String(col + 1), cx, coordinateTopY, { align: 'center', baseline: 'bottom' });
+        LTRTextRenderer.renderText(doc, String(col + 1), cx, columnLabelY, { align: 'center', baseline: 'bottom' });
       }
 
       // Left rows (Y axis)
-      const coordinateLeftX = layout.coordinateLeftX ?? (gridX - 2);
+      const rowLabelX = gridX - this.PDF_GRID_RENDERING_OFFSETS.rowLabelToGridGapMm;
       for (let row = 0; row < rows; row++) {
         const cy = gridY + row * cellSize + (cellSize / 2);
-        LTRTextRenderer.renderText(doc, String(row + 1), coordinateLeftX, cy, { align: 'right', baseline: 'middle' });
+        LTRTextRenderer.renderText(doc, String(row + 1), rowLabelX, cy, { align: 'right', baseline: 'middle' });
       }
     }
 

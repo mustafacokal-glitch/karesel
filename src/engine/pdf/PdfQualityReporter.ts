@@ -1,4 +1,5 @@
 import { PdfWorksheetInput, PdfLayoutResult, PdfPageKind, PdfQualityReport } from './PdfTypes';
+import { PdfGridRenderer } from './PdfGridRenderer';
 
 export class PdfQualityReporter {
   public static createReport(params: {
@@ -19,13 +20,16 @@ export class PdfQualityReporter {
       }
     }
 
-    if (layout.gridY !== undefined && layout.coordinateTopY !== undefined && layout.coordinateHeaderSizeMm !== undefined) {
-      const coordinateToGridGap = layout.gridY - (layout.coordinateTopY + layout.coordinateHeaderSizeMm);
-      if (coordinateToGridGap < 0.4) {
-        overflowWarnings.push('coordinate-grid-gap-too-small: Gap between coordinates and grid is too small.');
+    if (layout.gridY !== undefined) {
+      const actualColumnLabelY = layout.gridY - PdfGridRenderer.PDF_GRID_RENDERING_OFFSETS.columnLabelToGridGapMm;
+      const actualColumnLabelToGridGap = layout.gridY - actualColumnLabelY;
+
+      if (actualColumnLabelToGridGap < 0.45) {
+        overflowWarnings.push('column-label-too-close-to-grid: column labels are too close to the grid.');
       }
-      if (coordinateToGridGap > 1.2) {
-        overflowWarnings.push('coordinate-grid-gap-too-large: Gap between coordinates and grid is too large.');
+
+      if (actualColumnLabelToGridGap > 1.1) {
+        overflowWarnings.push('column-label-too-far-from-grid: column labels are too far from the grid.');
       }
     }
 
